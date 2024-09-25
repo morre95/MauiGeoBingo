@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Maui;
+using CommunityToolkit.Maui.Maps;
 using Microsoft.Extensions.Logging;
 
 namespace MauiGeoBingo
@@ -10,6 +11,11 @@ namespace MauiGeoBingo
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>()
+#if ANDROID || IOS
+                    .UseMauiMaps()
+#elif WINDOWS
+                    .UseMauiCommunityToolkitMaps("AIzaSyBaj711kXTEo06BLhszQd_42jErf-A9BSs")
+#endif
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
