@@ -1,6 +1,7 @@
 using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Maui.Storage;
 using CommunityToolkit.Maui.Views;
+using MauiGeoBingo.Extensions;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -51,9 +52,6 @@ public partial class ButtonsPage : ContentPage
     public async Task<T?> ReadJsonFile<T>(string filePath)
     {
         using Stream fileStream = await FileSystem.Current.OpenAppPackageFileAsync(filePath);
-        //using StreamReader reader = new StreamReader(fileStream);
-
-        //string jsonString = await reader.ReadToEndAsync();
         return await JsonSerializer.DeserializeAsync<T>(fileStream);
     }
 
@@ -248,28 +246,5 @@ public class Result
 }
 
 
-public static class ThreadSafeRandom
-{
-    [ThreadStatic] private static Random Local;
 
-    public static Random ThisThreadsRandom
-    {
-        get { return Local ?? (Local = new Random(unchecked(Environment.TickCount * 31 + Thread.CurrentThread.ManagedThreadId))); }
-    }
-}
 
-static class MyExtensions
-{
-    public static void Shuffle<T>(this IList<T> list)
-    {
-        int n = list.Count;
-        while (n > 1)
-        {
-            n--;
-            int k = ThreadSafeRandom.ThisThreadsRandom.Next(n + 1);
-            T value = list[k];
-            list[k] = list[n];
-            list[n] = value;
-        }
-    }
-}
