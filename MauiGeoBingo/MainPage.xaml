@@ -29,35 +29,9 @@
     </ContentPage.Resources>
 
     <ScrollView>
-        
         <VerticalStackLayout Padding="30,0" Spacing="25">
             <Button Text="Go to Map" Clicked="Map_Clicked" />
             <Button Text="Go to Buttons" Clicked="Buttons_Clicked" />
-            <Grid x:Name="gameGrid">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-            </Grid>
-            <Grid x:Name="questionGrid">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-            </Grid>
         </VerticalStackLayout>
     </ScrollView>
 

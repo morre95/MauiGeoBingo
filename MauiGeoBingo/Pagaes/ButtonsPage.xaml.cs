@@ -2,6 +2,8 @@ using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Maui.Storage;
 using CommunityToolkit.Maui.Views;
 using System.Diagnostics;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace MauiGeoBingo.Pagaes;
 
@@ -14,8 +16,8 @@ public partial class ButtonsPage : ContentPage
     private Color _winningColor = Colors.Green;
 
     public ButtonsPage()
-	{
-		InitializeComponent();
+    {
+        InitializeComponent();
 
         gameGrid.Loaded += GridLoaded;
         _bingoButtons = new Button[4, 4];
@@ -46,35 +48,63 @@ public partial class ButtonsPage : ContentPage
         }
     }
 
-    private void NewQuestion_Clicked(object? sender, EventArgs e)
+    public async Task<T?> ReadJsonFile<T>(string filePath)
+    {
+        using Stream fileStream = await FileSystem.Current.OpenAppPackageFileAsync(filePath);
+        //using StreamReader reader = new StreamReader(fileStream);
+
+        //string jsonString = await reader.ReadToEndAsync();
+        return await JsonSerializer.DeserializeAsync<T>(fileStream);
+    }
+
+    private async void NewQuestion_Clicked(object? sender, EventArgs e)
     {
         if (ActiveBingoButton != null) return;
 
         if (sender is Button questionBtn)
         {
-            Label label = new()
-            {
-                Text = "Vad kan frågan vara?"
-            };
+            Quiz? quiz = await ReadJsonFile<Quiz>(@"quizDB.json");
 
-            questionGrid.Add(label, 0, 0);
-            questionGrid.SetColumnSpan(label, 2);
-
-            for (int row = 1; row <= 2; row++)
+            if (quiz != null && quiz.Results != null)
             {
-                for (int col = 0; col < 2; col++)
+                var results = quiz.Results.Where(r => r.Category.StartsWith("Entertainment")).ToList();
+                Result result = results[Random.Shared.Next(results.Count)];
+
+                Label label = new()
                 {
-                    Button btn = new Button
-                    {
-                        Text = $"Ok {row}-{col}",
-                    };
-                    btn.Clicked += Answer_ClickedAsync;
-                    questionGrid.Add(btn, col, row);
-                }
-            }
-            ActiveBingoButton = new KeyValuePair<string, Button>("Ok 1-1", questionBtn);
-        }
+                    Text = result.Question,
+                };
 
+                questionGrid.Add(label, 0, 0);
+                questionGrid.SetColumnSpan(label, 2);
+
+                List<string> answers = result.IncorrectAnswers;
+                answers.Add(result.CorrectAnswer);
+                answers.Shuffle();
+                int index = 0;
+                for (int row = 1; row <= answers.Count / 2; row++)
+                {
+                    for (int col = 0; col < answers.Count / 2; col++)
+                    {
+                        Button btn = new Button
+                        {
+                            Text = answers[index],
+                        };
+
+                        if (result.CorrectAnswer == answers[index])
+                        {
+                            btn.BackgroundColor = Colors.Gold;
+                        }
+
+                        btn.Clicked += Answer_ClickedAsync;
+                        questionGrid.Add(btn, col, row);
+
+                        index++;
+                    }
+                }
+                ActiveBingoButton = new KeyValuePair<string, Button>(result.CorrectAnswer, questionBtn);
+            }
+        }
     }
 
 
@@ -192,5 +222,54 @@ public partial class ButtonsPage : ContentPage
         }
 
         return false;
+    }
+}
+
+public class Quiz
+{
+    [JsonPropertyName("response_code")]
+    public int ResponseCode { get; set; }
+    public List<Result> Results { get; set; } = new List<Result>();
+    public string Token { get; set; }
+}
+
+public class Result
+{
+    public string Category { get; set; }
+    public string Type { get; set; }
+    public string Difficulty { get; set; }
+    public string Question { get; set; }
+
+    [JsonPropertyName("correct_answer")]
+    public string CorrectAnswer { get; set; }
+
+    [JsonPropertyName("incorrect_answers")]
+    public List<string> IncorrectAnswers { get; set; }
+}
+
+
+public static class ThreadSafeRandom
+{
+    [ThreadStatic] private static Random Local;
+
+    public static Random ThisThreadsRandom
+    {
+        get { return Local ?? (Local = new Random(unchecked(Environment.TickCount * 31 + Thread.CurrentThread.ManagedThreadId))); }
+    }
+}
+
+static class MyExtensions
+{
+    public static void Shuffle<T>(this IList<T> list)
+    {
+        int n = list.Count;
+        while (n > 1)
+        {
+            n--;
+            int k = ThreadSafeRandom.ThisThreadsRandom.Next(n + 1);
+            T value = list[k];
+            list[k] = list[n];
+            list[n] = value;
+        }
     }
 }
