@@ -28,10 +28,11 @@
         </Style>
     </ContentPage.Resources>
 
-    <ScrollView>
+    <ScrollView Loaded="ScrollView_Loaded">
         <VerticalStackLayout Padding="30,0" Spacing="25">
             <Button Text="Go to Map" Clicked="Map_Clicked" />
             <Button Text="Go to Buttons" Clicked="Buttons_Clicked" />
+            <Button Text="Settings" Clicked="Settings_Clicked" />
         </VerticalStackLayout>
     </ScrollView>
 

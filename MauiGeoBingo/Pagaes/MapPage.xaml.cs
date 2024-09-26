@@ -12,11 +12,11 @@ public partial class MapPage : ContentPage
 
     private Dictionary<string, Circle> _circles = new();
 
-    private double _statLatidude = AppSettings.StatLatidude;
-    private double _staLongitude = AppSettings.StaLongitude;
+    private double _statLatidude = AppSettings.StartLatidude;
+    private double _staLongitude = AppSettings.StartLongitude;
 
-    private double _latDiff = 0.005;
-    private double _lngDiff = 0.01;
+    private double _latDiff = AppSettings.LatidudeMarkerDiff;
+    private double _lngDiff = AppSettings.LongitudeMarkerDiff;
 
     private bool _loaded = false;
 
@@ -72,7 +72,7 @@ public partial class MapPage : ContentPage
                 {
                     Location = new Location(_statLatidude + (row * _latDiff), _staLongitude + (col * _lngDiff)),
                     Label = $"En sport fråga!!! {row}-{col}",
-                    Address = "En stad nära dig",
+                    Address = $"Your score is: {0}",
                     Type = PinType.Place,
                 };
 

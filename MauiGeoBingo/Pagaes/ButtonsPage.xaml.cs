@@ -5,6 +5,7 @@ using MauiGeoBingo.Classes;
 using MauiGeoBingo.Extensions;
 using System.Diagnostics;
 using System.Net;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -31,24 +32,32 @@ public partial class ButtonsPage : ContentPage
         CreateButtons();
     }
 
-    private void CreateButtons()
+    private async void CreateButtons()
     {
-        for (int row = 0; row < 4; row++)
-        {
-            for (int col = 0; col < 4; col++)
+        /*Quiz? quiz = await ReadJsonFile<Quiz>(@"quizDB.json");
+
+        if (quiz != null && quiz.Results != null)
+        {*/
+            for (int row = 0; row < 4; row++)
             {
-                Button btn = new Button
+                for (int col = 0; col < 4; col++)
                 {
-                    Text = "0",
-                };
+                    Button btn = new Button
+                    {
+                        Text = "0",
+                    };
 
-                btn.Clicked += NewQuestion_Clicked;
+                    btn.Clicked += NewQuestion_Clicked;
 
-                gameGrid.Add(btn, col, row);
+                    //ToolTipProperties.SetText(btn, result.Category);
 
-                _bingoButtons[row, col] = btn;
+                    gameGrid.Add(btn, col, row);
+
+                    _bingoButtons[row, col] = btn;
+                }
             }
-        }
+        //}
+   
     }
 
     public async Task<T?> ReadJsonFile<T>(string filePath)
@@ -255,57 +264,6 @@ public partial class ButtonsPage : ContentPage
         }
 
         return false;
-    }
-}
-
-
-internal class HttpRequest
-{
-    private Uri _uri;
-    private HttpClient _httpClient;
-
-    public HttpRequest(string uri)
-    {
-        _uri = new Uri(uri);
-        _httpClient = new HttpClient();
-    }
-
-    public async Task<T?> GetAsync<T>()
-    {
-        var response = await _httpClient.GetAsync(_uri);
-
-        if (response.StatusCode == HttpStatusCode.OK)
-        {
-            var jsonResponse = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<T>(jsonResponse);
-        }
-        return default;
-    }
-
-    public async Task<T?> PostAsync<T>(object? args)
-    {
-        StringContent jsonContent = new(JsonSerializer.Serialize(args), Encoding.UTF8, "application/json");
-        using HttpResponseMessage response = await _httpClient.PostAsync(_uri, jsonContent);
-
-        if (response.StatusCode == HttpStatusCode.OK)
-        {
-            var jsonResponse = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<T>(jsonResponse);
-        }
-        return default;
-    }
-
-    public async Task<T?> PutAsync<T>(object? args)
-    {
-        StringContent jsonContent = new(JsonSerializer.Serialize(args), Encoding.UTF8, "application/json");
-        using HttpResponseMessage response = await _httpClient.PutAsync(_uri, jsonContent);
-
-        if (response.StatusCode == HttpStatusCode.OK)
-        {
-            var jsonResponse = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<T>(jsonResponse);
-        }
-        return default;
     }
 }
 
