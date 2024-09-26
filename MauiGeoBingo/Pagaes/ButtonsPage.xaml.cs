@@ -34,51 +34,51 @@ public partial class ButtonsPage : ContentPage
 
     private async void CreateButtons()
     {
-        /*Quiz? quiz = await ReadJsonFile<Quiz>(@"quizDB.json");
+        Quiz? quiz = await Helpers.ReadJsonFile<Quiz>(@"quizDB.json");
 
         if (quiz != null && quiz.Results != null)
-        {*/
+        {
             for (int row = 0; row < 4; row++)
             {
                 for (int col = 0; col < 4; col++)
                 {
-                    Button btn = new Button
+                    QuizButton btn = new QuizButton
                     {
                         Text = "0",
                     };
 
+                    var results = quiz.Results.Where(r => r.Category.StartsWith("Entertainment")).ToList();
+                    Result result = results[Random.Shared.Next(results.Count)];
+
+                    quiz.Results.Remove(result);
+
                     btn.Clicked += NewQuestion_Clicked;
 
-                    //ToolTipProperties.SetText(btn, result.Category);
+                    ToolTipProperties.SetText(btn, result.Category);
 
                     gameGrid.Add(btn, col, row);
 
                     _bingoButtons[row, col] = btn;
                 }
             }
-        //}
+        }
+        else
+        {
+            await DisplayAlert("Alert", "Could not find any questions for you", "OK");
+        }
    
     }
 
-    public async Task<T?> ReadJsonFile<T>(string filePath)
-    {
-        using Stream fileStream = await FileSystem.Current.OpenAppPackageFileAsync(filePath);
-        return await JsonSerializer.DeserializeAsync<T>(fileStream);
-    }
+    
 
     private async void NewQuestion_Clicked(object? sender, EventArgs e)
     {
         if (ActiveBingoButton != null) return;
 
-        if (sender is Button questionBtn)
+        if (sender is QuizButton questionBtn)
         {
-            Quiz? quiz = await ReadJsonFile<Quiz>(@"quizDB.json");
-
-            if (quiz != null && quiz.Results != null)
-            {
-                var results = quiz.Results.Where(r => r.Category.StartsWith("Entertainment")).ToList();
-                Result result = results[Random.Shared.Next(results.Count)];
-
+            Result? result = questionBtn.QUestionAndAnswer;
+            if (result != null) {
                 Label label = new()
                 {
                     Text = result.Question,
@@ -287,6 +287,11 @@ public class Result
 
     [JsonPropertyName("incorrect_answers")]
     public List<string> IncorrectAnswers { get; set; }
+}
+
+public class QuizButton : Button
+{
+    public Result? QUestionAndAnswer { get; set; } = null;
 }
 
 

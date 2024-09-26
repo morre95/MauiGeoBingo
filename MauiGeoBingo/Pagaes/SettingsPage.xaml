@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="MauiGeoBingo.Pagaes.SettingsPage">
+             x:Class="MauiGeoBingo.Pagaes.SettingsPage"
+             Loaded="ContentPage_Loaded">
     <VerticalStackLayout>
         
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" /> <!-- Header -->
+                <RowDefinition Height="*" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="*" />
@@ -36,7 +38,12 @@
                 <Entry x:Name="longitudeDiff" Placeholder="Longitude diff" Keyboard="Numeric" Completed="OnEntryLonDiffCompleted" />
             </StackLayout>
 
-            <StackLayout Grid.Row="3" Grid.Column="0" Margin="10">
+            <StackLayout Grid.Row="3" Grid.ColumnSpan="2" Margin="10">
+                <Label Text="Categorie" />
+                <Picker x:Name="categories" Title="Categories" />
+            </StackLayout>
+
+            <StackLayout Grid.Row="4" Grid.Column="0" Margin="10">
                 <Button Text="Rest to Default" Clicked="ResetClicked" />
             </StackLayout>
         </Grid>

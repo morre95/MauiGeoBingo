@@ -3,6 +3,7 @@ using Microsoft.Maui.Maps;
 using Microsoft.Maui.Controls.Maps;
 using Map = Microsoft.Maui.Controls.Maps.Map;
 using System.Diagnostics;
+using System.Text.Json.Serialization;
 
 namespace MauiGeoBingo.Pagaes;
 
@@ -21,8 +22,8 @@ public partial class MapPage : ContentPage
     private bool _loaded = false;
 
     public MapPage()
-	{
-		InitializeComponent();
+    {
+        InitializeComponent();
 
         Location location = new Location(_statLatidude, _staLongitude);
         MapSpan mapSpan = new MapSpan(location, 0.1, 0.1);
@@ -130,3 +131,6 @@ public partial class MapPage : ContentPage
         }
     }
 }
+
+
+

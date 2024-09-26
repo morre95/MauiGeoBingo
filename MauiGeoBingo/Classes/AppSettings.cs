@@ -52,6 +52,12 @@ namespace MauiGeoBingo.Classes
             set { Preferences.Set(nameof(PlayerName), value); }
         }
 
+        public static string QuizCategorie
+        {
+            get { return Preferences.Get(nameof(QuizCategorie), "General Knowledge"); }
+            set { Preferences.Set(nameof(QuizCategorie), value); }
+        }
+
         private static string _baseEndpoint => DeviceInfo.Platform == DevicePlatform.Android ? "http://10.0.2.2:5000" : "http://127.0.0.1:5000";
         public static string LocalBaseEndpoint => _baseEndpoint;
 

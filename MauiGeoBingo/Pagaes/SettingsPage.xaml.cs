@@ -1,3 +1,4 @@
+
 using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Maui.Views;
 using MauiGeoBingo.Classes;
@@ -9,7 +10,10 @@ public partial class SettingsPage : ContentPage
 	public SettingsPage()
 	{
 		InitializeComponent();
+    }
 
+    private async void ContentPage_Loaded(object sender, EventArgs e)
+    {
         latidude.Text = AppSettings.StartLatidude.ToString();
         longitude.Text = AppSettings.StartLongitude.ToString();
 
@@ -17,6 +21,13 @@ public partial class SettingsPage : ContentPage
         longitudeDiff.Text = AppSettings.LongitudeMarkerDiff.ToString();
 
         playerName.Text = AppSettings.PlayerName;
+
+        var cats = await Helpers.ReadJsonFile<TriviaCategorieList>("quizCategories.json");
+
+        if (cats != null) 
+        { 
+            categories.ItemsSource = cats.TriviaCategories.Select(c => c.Name).ToList();
+        }
     }
 
     private async void OnEntryCompleted(object? sender, EventArgs e)
@@ -101,4 +112,6 @@ public partial class SettingsPage : ContentPage
             Navigation.RemovePage(page);
         }
     }
+
+    
 }
