@@ -8,7 +8,7 @@ public partial class ServerPage : ContentPage
 	{
 		InitializeComponent();
 
-		BindMe b = new();
+        Server b = new();
 		b.Servers = [new Server {
 			Name = "Game 1",
 			Description = "8 spelare",
@@ -65,7 +65,7 @@ public partial class ServerPage : ContentPage
         ];
 
             BindingContext = b;
-            OnPropertyChanged(nameof(b.Servers));
+            OnPropertyChanged(nameof(b));
             Debug.WriteLine("Nu ska den vara uppdaterad");
         };
         timer.Start();
@@ -73,15 +73,11 @@ public partial class ServerPage : ContentPage
 }
 
 
-
-public class BindMe
-{
-	public List<Server> Servers {  get; set; }
-}
-
 public class Server
 {
     public string Name { get; set; }
 	public string Description { get; set; }
     public bool IsMyServer { get; set; }
+
+    public List<Server> Servers { get; set; }
 }

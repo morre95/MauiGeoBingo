@@ -37,7 +37,7 @@
                 <Label Grid.Row="0" Grid.Column="1" Text="Description" />
                 <Label Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2" Text="Controlls" HorizontalOptions="Center" />
             </Grid>
-            <ListView ItemsSource="{Binding Servers, Mode=OneTime}">
+            <ListView x:Name="serverList" ItemsSource="{Binding Servers, Mode=OneTime}">
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <ViewCell>
