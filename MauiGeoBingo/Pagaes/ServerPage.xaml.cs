@@ -3,6 +3,7 @@ using Microsoft.Maui.Controls;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.ConstrainedExecution;
 using System.Text.Json.Serialization;
 
 namespace MauiGeoBingo.Pagaes;
@@ -46,7 +47,8 @@ public partial class ServerPage : ContentPage
 
             if (response != null && response.Success)
             {
-                server.UpdateData(true);
+                btn.IsEnabled = false;
+                btn.Text = "Deleting...";
             }
         }
     }
@@ -69,7 +71,7 @@ public class ServerViewModel : INotifyPropertyChanged
     private bool _isMyServer;
     private DateTime? _created;
 
-    [JsonPropertyName("game_name")]
+    //[JsonPropertyName("game_name")]
     public string? GameName
     {
         get => _gameName;
@@ -83,7 +85,7 @@ public class ServerViewModel : INotifyPropertyChanged
         }
     }
 
-    [JsonPropertyName("game_id")]
+    //[JsonPropertyName("game_id")]
     public int? GameId
     {
         get => _gameId;
@@ -97,7 +99,7 @@ public class ServerViewModel : INotifyPropertyChanged
         }
     }
 
-    [JsonPropertyName("number_of_players")]
+    //[JsonPropertyName("number_of_players")]
     public int? NumberOfPlayers
     {
         get => _numberOfPlayers;
@@ -111,7 +113,7 @@ public class ServerViewModel : INotifyPropertyChanged
         }
     }
 
-    [JsonPropertyName("is_my_server")]
+    //[JsonPropertyName("is_my_server")]
     public bool IsMyServer
     {
         get => _isMyServer;
@@ -127,10 +129,10 @@ public class ServerViewModel : INotifyPropertyChanged
 
     public int? is_map { get; set; } = null;
 
-    [JsonIgnore]
+    //[JsonIgnore]
     public string MapOrButton { get { return is_map == 1 ? "Map" : "Button"; } set { is_map = value == "Map" ? 1 : 0; OnPropertyChanged(nameof(MapOrButton)); } }
 
-    [JsonPropertyName("created")]
+    //[JsonPropertyName("created")]
     public DateTime? Created
     {
         get => _created;
@@ -148,46 +150,37 @@ public class ServerViewModel : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    private static DateTime _lastUpdated = DateTime.MinValue;
-
-    private static readonly int _intervalInMs = 4_999;
-
     public ServerViewModel()
     {
         Servers = [];
     }
 
-    public async void UpdateData(bool forceUpdate = false)
+    public async void UpdateData()
     {
-        // TODO: Det är något som gör att den server som man just raderat inte försvinner direkt. Utan det verkar som det går åt en runda till av 5 sekunder
-        if ((DateTime.Now - _lastUpdated).TotalMilliseconds >= _intervalInMs || forceUpdate)
+        Servers.Clear();
+
+        string endpoint = AppSettings.LocalBaseEndpoint;
+        HttpRequest rec = new($"{endpoint}/get/active/servers?player_id={AppSettings.PlayerId}");
+
+        Server? servers = await rec.GetAsync<Server>();
+
+        if (servers != null)
         {
-            _lastUpdated = DateTime.Now;
-            Servers.Clear();
-
-            string endpoint = AppSettings.LocalBaseEndpoint;
-            HttpRequest rec = new($"{endpoint}/get/active/servers?player_id={AppSettings.PlayerId}");
-
-            Server? servers = await rec.GetAsync<Server>();
-
-            if (servers != null)
+            foreach (var server in servers.Servers)
             {
-                foreach (var server in servers.Servers)
+                Servers.Add(new()
                 {
-                    Servers.Add(new()
-                    {
-                        GameName = server.GameName,
-                        Created = server.Created,
-                        NumberOfPlayers = server.NumberOfPlayers,
-                        GameId = server.GameId,
-                        IsMyServer = server.IsMyServer,
-                    });
-                }
-
+                    GameName = server.GameName,
+                    Created = server.Created,
+                    NumberOfPlayers = server.NumberOfPlayers,
+                    GameId = server.GameId,
+                    IsMyServer = server.IsMyServer,
+                });
             }
 
-            OnPropertyChanged(nameof(Servers));
         }
+
+        OnPropertyChanged(nameof(Servers));
     }
 
     protected virtual void OnPropertyChanged(string propertyName)

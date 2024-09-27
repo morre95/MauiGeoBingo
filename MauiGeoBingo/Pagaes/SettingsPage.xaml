@@ -34,6 +34,17 @@
                 <Button Text="Create new Game" Clicked="NewGameClicked" Margin="0,10,0,10" />
             </StackLayout>
             <StackLayout Grid.Row="3" Grid.Column="1" Margin="10">
+                <Label Text="Number of players" />
+                <Picker x:Name="numberOfPlayers">
+                    <Picker.ItemsSource>
+                        <x:Array Type="{x:Type x:String}">
+                            <x:String>1</x:String>
+                            <x:String>2</x:String>
+                            <x:String>3</x:String>
+                            <x:String>4</x:String>
+                        </x:Array>
+                    </Picker.ItemsSource>
+                </Picker>
                 <Label Text="Is map or buttons game" />
                 <Picker x:Name="gameType">
                     <Picker.ItemsSource>

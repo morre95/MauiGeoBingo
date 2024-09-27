@@ -23,7 +23,7 @@ public partial class SettingsPage : ContentPage
 
         playerName.Text = AppSettings.PlayerName;
 
-        
+        numberOfPlayers.SelectedIndex = 1;
     }
 
     private async void CategoriesLoaded(object sender, EventArgs e)
