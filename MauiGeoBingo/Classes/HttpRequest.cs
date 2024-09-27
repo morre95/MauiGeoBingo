@@ -52,6 +52,18 @@ internal class HttpRequest
         }
         return default;
     }
+
+    public async Task<T?> DeleteAsync<T>()
+    {
+        using HttpResponseMessage response = await _httpClient.DeleteAsync(_uri);
+
+        if (response.StatusCode == HttpStatusCode.OK)
+        {
+            var jsonResponse = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<T>(jsonResponse);
+        }
+        return default;
+    }
 }
 
 

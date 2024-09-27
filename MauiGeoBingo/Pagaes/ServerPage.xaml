@@ -28,24 +28,28 @@
         </Style>
     </ContentPage.Resources>
 
-    <ScrollView VerticalScrollBarVisibility="Always" VerticalOptions="FillAndExpand">
+    <ScrollView Orientation="Both" VerticalScrollBarVisibility="Always" VerticalOptions="FillAndExpand" HorizontalScrollBarVisibility="Always" HorizontalOptions="FillAndExpand">
         <StackLayout Padding="10">
             <Label Text="Choose a server" VerticalOptions="Center" HorizontalOptions="Center" />
 
-            <Grid RowDefinitions="*" ColumnDefinitions="*,*,*,*">
+            <Grid RowDefinitions="*" ColumnDefinitions="200,100,120,145,120,120">
                 <Label Grid.Row="0" Grid.Column="0" Text="Name" />
-                <Label Grid.Row="0" Grid.Column="1" Text="Description" />
-                <Label Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2" Text="Controlls" HorizontalOptions="Center" />
+                <Label Grid.Row="0" Grid.Column="1" Text="Num Players" />
+                <Label Grid.Row="0" Grid.Column="2" Text="Map or Buttons" />
+                <Label Grid.Row="0" Grid.Column="3" Text="Created" HorizontalTextAlignment="Center" />
+                <Label Grid.Row="0" Grid.Column="4" Grid.ColumnSpan="2" Text="Controlls" HorizontalOptions="Center" />
             </Grid>
-            <ListView x:Name="serverList" ItemsSource="{Binding Servers, Mode=OneTime}">
+            <ListView x:Name="serverList" ItemsSource="{Binding Servers}">
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <ViewCell>
-                            <Grid RowDefinitions="*" ColumnDefinitions="*,*,*,*">
-                                <Label Grid.Row="0" Grid.Column="0" Text="{Binding Name}" />
-                                <Label Grid.Row="0" Grid.Column="1" Text="{Binding Description}" />
-                                <Button Grid.Row="0" Grid.Column="2" Text="Go To" Margin="0,5,5,0" />
-                                <Button Grid.Row="0" Grid.Column="3" Text="Delete" Margin="0,5,5,0" IsEnabled="{Binding IsMyServer}" />
+                            <Grid RowDefinitions="*" ColumnDefinitions="200,100,120,145,120,120">
+                                <Label Grid.Row="0" Grid.Column="0" Text="{Binding GameName}" />
+                                <Label Grid.Row="0" Grid.Column="1" Text="{Binding NumberOfPlayers}" HorizontalTextAlignment="Center" />
+                                <Label Grid.Row="0" Grid.Column="2" Text="{Binding MapOrButton}" HorizontalTextAlignment="Center" />
+                                <Label Grid.Row="0" Grid.Column="3" Text="{Binding Created}" />
+                                <Button Grid.Row="0" Grid.Column="4" Text="Go To" Margin="0,5,5,0" Clicked="GoToServerClicked" />
+                                <Button Grid.Row="0" Grid.Column="5" Text="Delete" Margin="0,5,5,0" Clicked="DeleteServerClicked" IsEnabled="{Binding IsMyServer}" />
                             </Grid>
                         </ViewCell>
                     </DataTemplate>

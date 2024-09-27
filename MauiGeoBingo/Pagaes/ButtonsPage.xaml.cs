@@ -62,7 +62,7 @@ public partial class ButtonsPage : ContentPage
 
                     Result result = results[Random.Shared.Next(results.Count)];
                     results.Remove(result);
-                    ToolTipProperties.SetText(btn, result.Category);
+                    ToolTipProperties.SetText(btn, $"{result.Category} ({result.Difficulty})");
 
                     btn.QUestionAndAnswer = result;
 
