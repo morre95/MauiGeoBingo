@@ -15,7 +15,7 @@ public partial class MapSettingsPage : ContentPage
 
     private void MapGrid_Loaded(object sender, EventArgs e)
     {
-        Location location = new Location(AppSettings.StartLatidude, AppSettings.StartLongitude);
+        Location location = new Location(AppSettings.StartLatitude, AppSettings.StartLongitude);
         MapSpan mapSpan = new MapSpan(location, 0.1, 0.1);
         Map map = new Map(mapSpan)
         {
@@ -33,13 +33,13 @@ public partial class MapSettingsPage : ContentPage
         Debug.WriteLine($"MapClick: lat:{e.Location.Latitude}, lng:{e.Location.Longitude}");
         if (sender is Map map) 
         {
-            AppSettings.StartLatidude = e.Location.Latitude;
+            AppSettings.StartLatitude = e.Location.Latitude;
             AppSettings.StartLongitude = e.Location.Longitude;
 
-            double lat = AppSettings.StartLatidude;
+            double lat = AppSettings.StartLatitude;
             double lon = AppSettings.StartLongitude;
 
-            double latDiff = AppSettings.LatidudeMarkerDiff;
+            double latDiff = AppSettings.LatitudeMarkerDiff;
             double lonDiff = AppSettings.LongitudeMarkerDiff;
 
             map.Pins.Clear();

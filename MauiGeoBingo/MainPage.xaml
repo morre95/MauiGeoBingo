@@ -33,6 +33,7 @@
             <Button Text="Go to Map" Clicked="Map_Clicked" />
             <Button Text="Go to Buttons" Clicked="Buttons_Clicked" />
             <Button Text="Settings" Clicked="Settings_Clicked" />
+            <Button Text="Server" Clicked="Server_Clicked" />
         </VerticalStackLayout>
     </ScrollView>
 

@@ -13,10 +13,10 @@ public partial class MapPage : ContentPage
 
     private Dictionary<string, Circle> _circles = new();
 
-    private double _statLatidude = AppSettings.StartLatidude;
+    private double _statLatidude = AppSettings.StartLatitude;
     private double _staLongitude = AppSettings.StartLongitude;
 
-    private double _latDiff = AppSettings.LatidudeMarkerDiff;
+    private double _latDiff = AppSettings.LatitudeMarkerDiff;
     private double _lngDiff = AppSettings.LongitudeMarkerDiff;
 
     private bool _loaded = false;

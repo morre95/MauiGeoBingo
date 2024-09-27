@@ -59,6 +59,11 @@ namespace MauiGeoBingo
                 }
             }
         }
+
+        private async void Server_Clicked(object sender, EventArgs e)
+        {
+            await Navigation.PushAsync(new ServerPage());
+        }
     }
 
 }

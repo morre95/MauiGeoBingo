@@ -10,10 +10,10 @@ namespace MauiGeoBingo.Classes
 {
     internal class AppSettings
     {
-        public static double StartLatidude
+        public static double StartLatitude
         {
-            get { return Preferences.Get(nameof(StartLatidude), 58.317064); }
-            set { Preferences.Set(nameof(StartLatidude), value); }
+            get { return Preferences.Get(nameof(StartLatitude), 58.317064); }
+            set { Preferences.Set(nameof(StartLatitude), value); }
         }
 
         public static double StartLongitude
@@ -22,10 +22,10 @@ namespace MauiGeoBingo.Classes
             set { Preferences.Set(nameof(StartLongitude), value); }
         }
 
-        public static double LatidudeMarkerDiff
+        public static double LatitudeMarkerDiff
         {
-            get { return Preferences.Get(nameof(LatidudeMarkerDiff), 0.005); }
-            set { Preferences.Set(nameof(LatidudeMarkerDiff), value); }
+            get { return Preferences.Get(nameof(LatitudeMarkerDiff), 0.005); }
+            set { Preferences.Set(nameof(LatitudeMarkerDiff), value); }
         }
 
         public static double LongitudeMarkerDiff
@@ -63,13 +63,15 @@ namespace MauiGeoBingo.Classes
 
         public void ResetToDefalt()
         {
-            StartLatidude = 58.317064;
+            StartLatitude = 58.317064;
             StartLongitude = 15.102253;
-            LatidudeMarkerDiff = 0.005;
+            LatitudeMarkerDiff = 0.005;
             LongitudeMarkerDiff = 0.01;
             PlayerId = 0;
             CurrentGameId = 0;
             PlayerName = "player";
+
+            QuizCategorie = "General Knowledge";
         }
 
 

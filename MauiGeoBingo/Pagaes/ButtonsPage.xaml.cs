@@ -38,6 +38,17 @@ public partial class ButtonsPage : ContentPage
 
         if (quiz != null && quiz.Results != null)
         {
+            List<Result> results;
+            string selectedCat = AppSettings.QuizCategorie;
+            if (selectedCat == "All")
+            {
+                results = quiz.Results;
+            }
+            else
+            {
+                results = quiz.Results.Where(r => r.Category.StartsWith(AppSettings.QuizCategorie)).ToList();
+            }
+
             for (int row = 0; row < 4; row++)
             {
                 for (int col = 0; col < 4; col++)
@@ -47,14 +58,13 @@ public partial class ButtonsPage : ContentPage
                         Text = "0",
                     };
 
-                    var results = quiz.Results.Where(r => r.Category.StartsWith("Entertainment")).ToList();
+                    btn.Clicked += QuestionBtn_Clicked;
+
                     Result result = results[Random.Shared.Next(results.Count)];
-
-                    quiz.Results.Remove(result);
-
-                    btn.Clicked += NewQuestion_Clicked;
-
+                    results.Remove(result);
                     ToolTipProperties.SetText(btn, result.Category);
+
+                    btn.QUestionAndAnswer = result;
 
                     gameGrid.Add(btn, col, row);
 
@@ -69,11 +79,10 @@ public partial class ButtonsPage : ContentPage
    
     }
 
-    
-
-    private async void NewQuestion_Clicked(object? sender, EventArgs e)
+    private void QuestionBtn_Clicked(object? sender, EventArgs e)
     {
         if (ActiveBingoButton != null) return;
+        
 
         if (sender is QuizButton questionBtn)
         {
@@ -90,16 +99,24 @@ public partial class ButtonsPage : ContentPage
                 List<string> answers = result.IncorrectAnswers;
                 answers.Add(result.CorrectAnswer);
                 answers.Shuffle();
-                int index = 0;
-                for (int row = 1; row <= answers.Count / 2; row++)
+
+                int rows = 2, cols = 2;
+                if (answers.Count < 4)
                 {
-                    for (int col = 0; col < answers.Count / 2; col++)
+                    rows = 1;
+                }
+
+                int index = 0;
+                for (int row = 1; row <= rows; row++)
+                {
+                    for (int col = 0; col < cols; col++)
                     {
                         Button btn = new Button
                         {
                             Text = answers[index],
                         };
 
+                        // TODO: Endast för att underlätta vid testning
                         if (result.CorrectAnswer == answers[index])
                         {
                             btn.BackgroundColor = Colors.Gold;
@@ -115,7 +132,6 @@ public partial class ButtonsPage : ContentPage
             }
         }
     }
-
 
     private async void Answer_ClickedAsync(object? sender, EventArgs e)
     {
