@@ -63,6 +63,9 @@ namespace MauiGeoBingo.Classes
 
         public void ResetToDefalt()
         {
+
+            Preferences.Clear();
+
             StartLatitude = 58.317064;
             StartLongitude = 15.102253;
             LatitudeMarkerDiff = 0.005;

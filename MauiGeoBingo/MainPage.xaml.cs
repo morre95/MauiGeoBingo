@@ -16,6 +16,8 @@ namespace MauiGeoBingo
         public MainPage()
         {
             InitializeComponent();
+
+            //Preferences.Clear(); Resetting all settings
         }
 
         private async void Map_Clicked(object sender, EventArgs e)

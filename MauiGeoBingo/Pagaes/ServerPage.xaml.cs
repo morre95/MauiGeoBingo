@@ -53,11 +53,15 @@ public partial class ServerPage : ContentPage
         }
     }
 
-    private void GoToServerClicked(object sender, EventArgs e)
+    private async void GoToServerClicked(object sender, EventArgs e)
     {
         if (sender is Button btn && btn.BindingContext is ServerViewModel server)
         {
             Debug.WriteLine($"Go to server: {server.GameName} with id: {server.GameId}");
+
+            var page = Navigation.NavigationStack.LastOrDefault();
+            await Navigation.PushAsync(new ButtonsPage(server));
+            Navigation.RemovePage(page);
         }
     }
 }
@@ -70,8 +74,8 @@ public class ServerViewModel : INotifyPropertyChanged
     private int? _numberOfPlayers;
     private bool _isMyServer;
     private DateTime? _created;
+    private bool _isMeAllowedToPlay;
 
-    //[JsonPropertyName("game_name")]
     public string? GameName
     {
         get => _gameName;
@@ -85,7 +89,6 @@ public class ServerViewModel : INotifyPropertyChanged
         }
     }
 
-    //[JsonPropertyName("game_id")]
     public int? GameId
     {
         get => _gameId;
@@ -99,7 +102,6 @@ public class ServerViewModel : INotifyPropertyChanged
         }
     }
 
-    //[JsonPropertyName("number_of_players")]
     public int? NumberOfPlayers
     {
         get => _numberOfPlayers;
@@ -113,7 +115,6 @@ public class ServerViewModel : INotifyPropertyChanged
         }
     }
 
-    //[JsonPropertyName("is_my_server")]
     public bool IsMyServer
     {
         get => _isMyServer;
@@ -129,10 +130,16 @@ public class ServerViewModel : INotifyPropertyChanged
 
     public int? is_map { get; set; } = null;
 
-    //[JsonIgnore]
-    public string MapOrButton { get { return is_map == 1 ? "Map" : "Button"; } set { is_map = value == "Map" ? 1 : 0; OnPropertyChanged(nameof(MapOrButton)); } }
+    public string MapOrButton 
+    { 
+        get => is_map == 1 ? "Map" : "Button"; 
+        set 
+        { 
+            is_map = value == "Map" ? 1 : 0; 
+            OnPropertyChanged(nameof(MapOrButton)); 
+        } 
+    }
 
-    //[JsonPropertyName("created")]
     public DateTime? Created
     {
         get => _created;
@@ -142,6 +149,19 @@ public class ServerViewModel : INotifyPropertyChanged
             {
                 _created = value;
                 OnPropertyChanged(nameof(_created));
+            }
+        }
+    }
+
+    public bool IsMeAllowedToPlay
+    { 
+        get => _isMeAllowedToPlay;
+        set
+        {
+            if (_isMeAllowedToPlay != value)
+            {
+                _isMeAllowedToPlay = value;
+                OnPropertyChanged(nameof(_isMeAllowedToPlay));
             }
         }
     }
@@ -168,6 +188,7 @@ public class ServerViewModel : INotifyPropertyChanged
         {
             foreach (var server in servers.Servers)
             {
+                if (server.PlayerIds == null) break;
                 Servers.Add(new()
                 {
                     GameName = server.GameName,
@@ -175,6 +196,7 @@ public class ServerViewModel : INotifyPropertyChanged
                     NumberOfPlayers = server.NumberOfPlayers,
                     GameId = server.GameId,
                     IsMyServer = server.IsMyServer,
+                    IsMeAllowedToPlay = server.PlayerIds.Contains(AppSettings.PlayerId) || server.IsMyServer,
                 });
             }
 
@@ -210,6 +232,9 @@ public class Server
 
     [JsonPropertyName("number_of_players")]
     public int? NumberOfPlayers { get; set; }
+    
+    [JsonPropertyName("player_ids")]
+    public int[]? PlayerIds { get; set; }
 
 
     public int is_active { get; set; }

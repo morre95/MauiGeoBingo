@@ -3,6 +3,8 @@ using CommunityToolkit.Maui.Storage;
 using CommunityToolkit.Maui.Views;
 using MauiGeoBingo.Classes;
 using MauiGeoBingo.Extensions;
+using Mopups.PreBaked.PopupPages.Loader;
+using Mopups.PreBaked.Services;
 using System.Diagnostics;
 using System.Net;
 using System.Text;
@@ -19,6 +21,8 @@ public partial class ButtonsPage : ContentPage
 
     private Color _winningColor = Colors.Green;
 
+    private ServerViewModel? Server { get; set; } = null;
+
     public ButtonsPage()
     {
         InitializeComponent();
@@ -27,9 +31,67 @@ public partial class ButtonsPage : ContentPage
         _bingoButtons = new Button[4, 4];
     }
 
-    private void GridLoaded(object? sender, EventArgs e)
+    public ButtonsPage(ServerViewModel server)
+    {
+        InitializeComponent();
+
+        gameGrid.Loaded += GridLoaded;
+        _bingoButtons = new Button[4, 4];
+
+        Server = server;
+    }
+
+    private async void GridLoaded(object? sender, EventArgs e)
     {
         CreateButtons();
+
+        if (Server != null)
+        {
+            // TODO: Fixa så att alla startar samtidigt. 
+            /*
+            Exempel:
+            Alla klienter är redo och ägaren har tryckt på ok. (Vem som är ägare finns i variabeln Server.IsMyServer)
+            När ägaren tryckt ok börjar en nedräkning på tex 10 sekunder som servern initsierar och skickar antal 
+            sekunder kvar till respektive klient. Som sedan börjar nedräkningen genom att sätta tiden att vänta med await Task.Delay();
+             */
+
+            // TBD: Tror det kan vara så att jag behöver en websocket här.
+            Task action;
+            if (Server.IsMyServer)
+            {
+                action = Task.Run(async () => {
+                    await Task.Delay(1000 * 60 * 5);
+                });
+            } 
+            else
+            {
+                /*IDispatcherTimer timer;
+                timer = Dispatcher.CreateTimer();
+                timer.Interval = TimeSpan.FromSeconds(5);
+                timer.Tick += (s, e) =>
+                {
+                    // Komma här om ägaren är klar
+                };
+                timer.Start();*/
+
+                /*while (true)
+                {
+                    // Gör en check här till ägaren är klar och svaret från api servern har svarat med en tid att vänta
+                    if (game.IsReadyBool) { break; }
+                }*/
+
+                action = Task.Run(async () => {
+                    await Task.Delay(1000 * 60 * 5);
+                });
+            }
+
+            await PreBakedMopupService.GetInstance().WrapTaskInLoader(action, Colors.Blue, Colors.White, LoadingReasons(), Colors.Black);
+        }
+    }
+
+    private List<string> LoadingReasons()
+    {
+        return ["The game will start soon", "It is near now....", "Get ready, soon it starts..."];
     }
 
     private async void CreateButtons()
@@ -57,6 +119,8 @@ public partial class ButtonsPage : ContentPage
                     {
                         Text = "0",
                     };
+
+                    btn.ClassId = $"{row}-{col}";
 
                     btn.Clicked += QuestionBtn_Clicked;
 
