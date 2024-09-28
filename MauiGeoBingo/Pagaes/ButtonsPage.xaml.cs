@@ -233,47 +233,49 @@ public partial class ButtonsPage : ContentPage
 
                     if (CheckIfBingo())
                     {
-                        await Toast.Make("Grattis du vann!!!").Show();
+                        string[] parts = activeBtn.ClassId.Split('-');
+                        int row = int.Parse(parts[0]);
+                        int col = int.Parse(parts[1]);
+
+                        await SendStatusUpdateAsync(row, col, number, true);
+
+                        await Toast.Make("Grattis du vann!!!", CommunityToolkit.Maui.Core.ToastDuration.Long).Show();
+                    }
+                    else
+                    {
+                        string[] parts = activeBtn.ClassId.Split('-');
+                        int row = int.Parse(parts[0]);
+                        int col = int.Parse(parts[1]);
+                        
+                        await SendStatusUpdateAsync(row, col, number);
                     }
 
                 }
-
-                await SendStatusUpdateAsync();
             }
 
             ActiveBingoButton = null;
         }
     }
 
-    private async Task SendStatusUpdateAsync()
+    private async Task SendStatusUpdateAsync(int row, int col, int value, bool winningMove = false)
     {
-        int[,] buttonsNum = new int[4, 4];
-        for (int row = 0; row < 4; row++)
+        string endpoint = AppSettings.LocalBaseEndpoint;
+        HttpRequest rec = new($"{endpoint}/update/game");
+        await rec.PostAsync<ResponseData>(new
         {
-            for (int col = 0; col < 4; col++)
-            {
-                if (int.TryParse(_bingoButtons[row, col].Text, out int number))
-                {
-                    buttonsNum[row, col] = number;
-                }
-            }
-        }
-
-        // TODO: 
-
-        HttpRequest rec = new("http://127.0.0.1:5000");
-
-        await rec.PutAsync<ResponseData>(new
-        {
-            Name = "Fredrik",
-            PlayerId = AppSettings.PlayerId,
-            IsMap = false
+            player_id = AppSettings.PlayerId,
+            game_id = AppSettings.CurrentGameId,
+            grid_row = row,
+            grid_col = col,
+            num = value,
+            winning_move = winningMove,
         });
     }
 
     public class ResponseData
     {
-
+        [JsonPropertyName("success")]
+        public bool Success { get; set; }
     }
 
     private bool CheckIfBingo()
