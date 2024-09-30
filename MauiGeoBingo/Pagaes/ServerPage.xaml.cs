@@ -3,9 +3,11 @@ using Microsoft.Maui.Controls;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Reactive;
 using System.Runtime.ConstrainedExecution;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Windows.Input;
 using Websocket.Client;
 
 namespace MauiGeoBingo.Pagaes;
@@ -43,6 +45,14 @@ public partial class ServerPage : ContentPage
             {
                 btn.IsEnabled = false;
                 btn.Text = "Deleting...";
+
+                server.Dispose();
+
+                await Task.Delay(500);
+
+                var page = Navigation.NavigationStack.LastOrDefault();
+                await Navigation.PushAsync(new ServerPage());
+                Navigation.RemovePage(page);
             }
         }
     }
@@ -56,6 +66,14 @@ public partial class ServerPage : ContentPage
             var page = Navigation.NavigationStack.LastOrDefault();
             await Navigation.PushAsync(new ButtonsPage(server));
             Navigation.RemovePage(page);
+        }
+    }
+
+    private async void CreateServerClicked(object sender, EventArgs e)
+    {
+        if (sender is Button)
+        {
+            await Navigation.PushAsync(new CreateServerPage());
         }
     }
 }
@@ -122,15 +140,15 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
-    public int? is_map { get; set; } = null;
+    private int? _isMap { get; set; } = null;
 
     public string MapOrButton 
     { 
-        get => is_map == 1 ? "Map" : "Button"; 
+        get => _isMap == 1 ? "Map" : "Button"; 
         set 
         { 
-            is_map = value == "Map" ? 1 : 0; 
-            OnPropertyChanged(nameof(is_map)); 
+            _isMap = value == "Map" ? 1 : 0; 
+            OnPropertyChanged(nameof(_isMap)); 
         } 
     }
 
@@ -172,11 +190,10 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable
 
         string endpoint = AppSettings.LocalWSBaseEndpoint;
         var url = new Uri(endpoint);
-
         _client = new WebsocketClient(url);
 
-        _client.ReconnectTimeout = TimeSpan.FromSeconds(30);
-        _client.ReconnectionHappened.Subscribe(info => Debug.WriteLine($"Reconnection happened, type: {info.Type}"));
+        /*_client.ReconnectTimeout = TimeSpan.FromSeconds(30);
+        _client.ReconnectionHappened.Subscribe(info => Debug.WriteLine($"Reconnection happened, type: {info.Type}"));*/
 
         _client.MessageReceived.Subscribe(HandleSubscription);
     }
@@ -222,28 +239,6 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable
                 Debug.WriteLine($"message: {message}");
                 foreach (var server in recived.Servers)
                 {
-                    //if (server.PlayerIds == null) break;
-                    // TBA: bör ses över om IsMeAllowedToPlay verkligen behövs
-                    /*if (server.PlayerIds == null)
-                        Servers.Add(new()
-                        {
-                            GameName = server.GameName,
-                            Created = server.Created,
-                            NumberOfPlayers = server.NumberOfPlayers,
-                            GameId = server.GameId,
-                            IsMyServer = server.IsMyServer,
-                        });
-                    else
-                        Servers.Add(new()
-                        {
-                            GameName = server.GameName,
-                            Created = server.Created,
-                            NumberOfPlayers = server.NumberOfPlayers,
-                            GameId = server.GameId,
-                            IsMyServer = server.IsMyServer,
-                            IsMeAllowedToPlay = server.PlayerIds.Contains(AppSettings.PlayerId) || server.IsMyServer,
-                        });*/
-
                     MainThread.BeginInvokeOnMainThread(() =>
                     {
                         Servers.Add(new()
@@ -253,10 +248,12 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable
                             NumberOfPlayers = server.NumberOfPlayers,
                             GameId = server.GameId,
                             IsMyServer = server.IsMyServer,
+                            _isMap = server.IsMap, 
                         });
                     });
-
                 }
+
+                OnPropertyChanged(nameof(Servers));
             }
         }
     
@@ -318,9 +315,12 @@ public class Server
     [JsonPropertyName("security_key")]
     public string? SecurityKey { get; set; }
 
+    [JsonPropertyName("is_map")]
+    public int IsMap { get; set; }
+
 
     public int is_active { get; set; }
-    public int is_map { get; set; }
+    
     public double latitude { get; set; }
     public double longitude { get; set; }
 

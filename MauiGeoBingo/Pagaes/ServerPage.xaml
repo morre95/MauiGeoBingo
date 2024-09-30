@@ -30,7 +30,7 @@
 
     <ScrollView Orientation="Both" VerticalScrollBarVisibility="Always" VerticalOptions="FillAndExpand" HorizontalScrollBarVisibility="Always" HorizontalOptions="FillAndExpand">
         <StackLayout Padding="10">
-            <Label Text="Choose a server" VerticalOptions="Center" HorizontalOptions="Center" />
+            <Label Text="Active Server List" FontSize="Medium" FontAttributes="Bold" />
 
             <Grid RowDefinitions="*" ColumnDefinitions="200,100,120,145,120,120">
                 <Label Grid.Row="0" Grid.Column="0" Text="Name" />
@@ -50,13 +50,13 @@
                                 <Label Grid.Row="0" Grid.Column="3" Text="{Binding Created}" />
                                 <!--<Button Grid.Row="0" Grid.Column="4" Text="Go To" Margin="0,5,5,0" Clicked="GoToServerClicked" IsEnabled="{Binding IsMeAllowedToPlay}" />-->
                                 <Button Grid.Row="0" Grid.Column="4" Text="Go To" Margin="0,5,5,0" Clicked="GoToServerClicked" />
-                                <Button Grid.Row="0" Grid.Column="5" Text="Delete" Margin="0,5,5,0" Clicked="DeleteServerClicked" IsEnabled="{Binding IsMyServer}" />
+                                <Button Grid.Row="0" Grid.Column="5" Text="Delete" Margin="0,5,5,0" Clicked="DeleteServerClicked" IsEnabled="{Binding IsMyServer}" Command="{Binding DeleteCommand}" />
                             </Grid>
                         </ViewCell>
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
-
+            <Button Text="Create Server" Clicked="CreateServerClicked" WidthRequest="120" HorizontalOptions="Start" />
         </StackLayout>
     </ScrollView>
 </ContentPage>
