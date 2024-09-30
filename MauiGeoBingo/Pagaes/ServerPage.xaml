@@ -48,7 +48,8 @@
                                 <Label Grid.Row="0" Grid.Column="1" Text="{Binding NumberOfPlayers}" HorizontalTextAlignment="Center" />
                                 <Label Grid.Row="0" Grid.Column="2" Text="{Binding MapOrButton}" HorizontalTextAlignment="Center" />
                                 <Label Grid.Row="0" Grid.Column="3" Text="{Binding Created}" />
-                                <Button Grid.Row="0" Grid.Column="4" Text="Go To" Margin="0,5,5,0" Clicked="GoToServerClicked" IsEnabled="{Binding IsMeAllowedToPlay}" />
+                                <!--<Button Grid.Row="0" Grid.Column="4" Text="Go To" Margin="0,5,5,0" Clicked="GoToServerClicked" IsEnabled="{Binding IsMeAllowedToPlay}" />-->
+                                <Button Grid.Row="0" Grid.Column="4" Text="Go To" Margin="0,5,5,0" Clicked="GoToServerClicked" />
                                 <Button Grid.Row="0" Grid.Column="5" Text="Delete" Margin="0,5,5,0" Clicked="DeleteServerClicked" IsEnabled="{Binding IsMyServer}" />
                             </Grid>
                         </ViewCell>

@@ -4,34 +4,28 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.ConstrainedExecution;
+using System.Text.Json;
 using System.Text.Json.Serialization;
+using Websocket.Client;
 
 namespace MauiGeoBingo.Pagaes;
 
 public partial class ServerPage : ContentPage
 {
-    private IDispatcherTimer _timer;
+    private ServerViewModel _serverViewModel;
 
     public ServerPage()
     {
         InitializeComponent();
 
-        ServerViewModel svm = new ServerViewModel();
-        svm.UpdateData();
-        BindingContext = svm;
-
-        _timer = Dispatcher.CreateTimer();
-        _timer.Interval = TimeSpan.FromSeconds(5);
-        _timer.Tick += (s, e) =>
-        {
-            svm.UpdateData();
-        };
-        _timer.Start();
+        _serverViewModel = new ServerViewModel();
+        _serverViewModel.UpdateData();
+        BindingContext = _serverViewModel;
     }
 
     protected override bool OnBackButtonPressed()
     {
-        _timer.Stop();
+        _serverViewModel.Dispose();
         base.OnBackButtonPressed();
         return false;
     }
@@ -67,7 +61,7 @@ public partial class ServerPage : ContentPage
 }
 
 
-public class ServerViewModel : INotifyPropertyChanged
+public class ServerViewModel : INotifyPropertyChanged, IDisposable
 {
     private string? _gameName;
     private int? _gameId;
@@ -136,7 +130,7 @@ public class ServerViewModel : INotifyPropertyChanged
         set 
         { 
             is_map = value == "Map" ? 1 : 0; 
-            OnPropertyChanged(nameof(MapOrButton)); 
+            OnPropertyChanged(nameof(is_map)); 
         } 
     }
 
@@ -170,44 +164,121 @@ public class ServerViewModel : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    private WebsocketClient _client;
+
     public ServerViewModel()
     {
         Servers = [];
+
+        string endpoint = AppSettings.LocalWSBaseEndpoint;
+        var url = new Uri(endpoint);
+
+        _client = new WebsocketClient(url);
+
+        _client.ReconnectTimeout = TimeSpan.FromSeconds(30);
+        _client.ReconnectionHappened.Subscribe(info => Debug.WriteLine($"Reconnection happened, type: {info.Type}"));
+
+        _client.MessageReceived.Subscribe(HandleSubscription);
     }
 
     public async void UpdateData()
     {
-        Servers.Clear();
+        await _client.Start();
 
-        string endpoint = AppSettings.LocalBaseEndpoint;
-        HttpRequest rec = new($"{endpoint}/get/active/servers?player_id={AppSettings.PlayerId}");
-
-        Server? servers = await rec.GetAsync<Server>();
-
-        if (servers != null)
-        {
-            foreach (var server in servers.Servers)
-            {
-                if (server.PlayerIds == null) break;
-                Servers.Add(new()
-                {
-                    GameName = server.GameName,
-                    Created = server.Created,
-                    NumberOfPlayers = server.NumberOfPlayers,
-                    GameId = server.GameId,
-                    IsMyServer = server.IsMyServer,
-                    IsMeAllowedToPlay = server.PlayerIds.Contains(AppSettings.PlayerId) || server.IsMyServer,
-                });
-            }
-
-        }
+        await Subscribe();
 
         OnPropertyChanged(nameof(Servers));
+    }
+
+    private async Task Subscribe()
+    {
+        await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
+        {
+            action = "subscribe",
+            topic = "new_servers",
+        })));
+    }
+
+    private async void HandleSubscription(ResponseMessage message)
+    {
+        //Debug.WriteLine($"Message received: {message}");
+        var recived = JsonSerializer.Deserialize<Server>(message.ToString());
+
+        if (recived != null)
+        {
+            if (recived.Type == "sub_auth")
+            {
+                Debug.WriteLine($"sub_auth: {message}");
+                await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
+                {
+                    action = "publish",
+                    topic = "new_servers",
+                    message = "Latest server update",
+                    security_key = recived.SecurityKey,
+                })));
+            }
+            else if (recived.Type == "message")
+            {
+                Debug.WriteLine($"message: {message}");
+                foreach (var server in recived.Servers)
+                {
+                    //if (server.PlayerIds == null) break;
+                    // TBA: bör ses över om IsMeAllowedToPlay verkligen behövs
+                    /*if (server.PlayerIds == null)
+                        Servers.Add(new()
+                        {
+                            GameName = server.GameName,
+                            Created = server.Created,
+                            NumberOfPlayers = server.NumberOfPlayers,
+                            GameId = server.GameId,
+                            IsMyServer = server.IsMyServer,
+                        });
+                    else
+                        Servers.Add(new()
+                        {
+                            GameName = server.GameName,
+                            Created = server.Created,
+                            NumberOfPlayers = server.NumberOfPlayers,
+                            GameId = server.GameId,
+                            IsMyServer = server.IsMyServer,
+                            IsMeAllowedToPlay = server.PlayerIds.Contains(AppSettings.PlayerId) || server.IsMyServer,
+                        });*/
+
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        Servers.Add(new()
+                        {
+                            GameName = server.GameName,
+                            Created = server.Created,
+                            NumberOfPlayers = server.NumberOfPlayers,
+                            GameId = server.GameId,
+                            IsMyServer = server.IsMyServer,
+                        });
+                    });
+
+                }
+            }
+        }
+    
     }
 
     protected virtual void OnPropertyChanged(string propertyName)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
+    private async void Unsubscribe()
+    {
+        await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
+        {
+            action = "unsubscribe",
+            topic = "new_servers",
+        })));
+    }
+
+    public void Dispose()
+    {
+        Unsubscribe();
     }
 }
 
@@ -227,8 +298,10 @@ public class Server
     [JsonPropertyName("game_name")]
     public string? GameName { get; set; }
 
-    [JsonPropertyName("is_my_server")]
-    public bool IsMyServer { get; set; }
+
+    public int? game_owner { get; set; }
+    [JsonIgnore]
+    public bool IsMyServer => game_owner == AppSettings.PlayerId;
 
     [JsonPropertyName("number_of_players")]
     public int? NumberOfPlayers { get; set; }
@@ -236,12 +309,22 @@ public class Server
     [JsonPropertyName("player_ids")]
     public int[]? PlayerIds { get; set; }
 
+    [JsonPropertyName("message")]
+    public string? Message { get; set; }
+    [JsonPropertyName("type")]
+    public string? Type { get; set; }
+    [JsonPropertyName("topic")]
+    public string? Topic { get; set; }
+    [JsonPropertyName("security_key")]
+    public string? SecurityKey { get; set; }
+
 
     public int is_active { get; set; }
     public int is_map { get; set; }
     public double latitude { get; set; }
     public double longitude { get; set; }
 
+    [JsonPropertyName("servers")]
     public List<Server> Servers { get; set; } = new();
 
     private static DateTime? StringToDate(string? stringToFormat)

@@ -61,6 +61,9 @@ namespace MauiGeoBingo.Classes
         private static string _baseEndpoint => DeviceInfo.Platform == DevicePlatform.Android ? "http://10.0.2.2:5000" : "http://127.0.0.1:5000";
         public static string LocalBaseEndpoint => _baseEndpoint;
 
+        private static string _baseWSEndpoint => DeviceInfo.Platform == DevicePlatform.Android ? "ws://10.0.2.2:8765" : "ws://127.0.0.1:8765";
+        public static string LocalWSBaseEndpoint => _baseWSEndpoint;
+
         public void ResetToDefalt()
         {
 
