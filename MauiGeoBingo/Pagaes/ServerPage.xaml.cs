@@ -318,6 +318,9 @@ public class Server
     [JsonPropertyName("is_map")]
     public int IsMap { get; set; }
 
+    [JsonPropertyName("last_modified")]
+    public string? LastModified { get; set; }
+
 
     public int is_active { get; set; }
     

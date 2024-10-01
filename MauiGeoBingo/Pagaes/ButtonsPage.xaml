@@ -53,6 +53,16 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
             </Grid>
+            
+            <Border x:Name="waitingBox" BackgroundColor="White" Stroke="Transparent" WidthRequest="250" HorizontalOptions="Center" Padding="5" IsVisible="False">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="5"/>
+                </Border.StrokeShape>
+                <StackLayout>
+                    <ActivityIndicator IsRunning="true" Color="Orange" />
+                    <Label x:Name="waitingText" Text="Waiting for players to join" HorizontalOptions="Center" TextColor="Black" FontSize="Medium" />
+                </StackLayout>
+            </Border>
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

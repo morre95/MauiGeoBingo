@@ -27,16 +27,18 @@ public partial class ButtonsPage : ContentPage
     {
         InitializeComponent();
 
-        gameGrid.Loaded += GridLoaded;
         _bingoButtons = new Button[4, 4];
+        gameGrid.Loaded += GridLoaded;
+
+        
     }
 
     public ButtonsPage(ServerViewModel server)
     {
         InitializeComponent();
 
-        gameGrid.Loaded += GridLoaded;
         _bingoButtons = new Button[4, 4];
+        gameGrid.Loaded += GridLoaded;
 
         Server = server;
     }
@@ -54,14 +56,38 @@ public partial class ButtonsPage : ContentPage
             När ägaren tryckt ok börjar en nedräkning på tex 10 sekunder som servern initsierar och skickar antal 
             sekunder kvar till respektive klient. Som sedan börjar nedräkningen genom att sätta tiden att vänta med await Task.Delay();
              */
+            string endpoint = AppSettings.LocalBaseEndpoint;
+            HttpRequest rec = new($"{endpoint}/add/player/to/game");
+
+            var response = await rec.PutAsync<ResponseData>(new 
+            {
+                player_id = AppSettings.PlayerId,
+                game_id = Server.GameId,
+            });
+
+            if (response == null)
+            {
+                await DisplayAlert("Alert", "Somthing with ther server is wrong", "OK");
+                return;
+            }
+
+            waitingBox.IsVisible = true;
+
+            for (int row = 0; row < _bingoButtons.GetLength(0); row++)
+            {
+                for (int col = 0; col < _bingoButtons.GetLength(1); col++)
+                {
+                    _bingoButtons[row, col].IsEnabled = false;
+                }
+            }
 
             // TBD: Tror det kan vara så att jag behöver en websocket här.
             Task action;
             if (Server.IsMyServer)
             {
-                action = Task.Run(async () => {
+                /*action = Task.Run(async () => {
                     await Task.Delay(1000 * 60 * 5);
-                });
+                });*/
             } 
             else
             {
@@ -80,12 +106,12 @@ public partial class ButtonsPage : ContentPage
                     if (game.IsReadyBool) { break; }
                 }*/
 
-                action = Task.Run(async () => {
+                /*action = Task.Run(async () => {
                     await Task.Delay(1000 * 60 * 5);
-                });
+                });*/
             }
 
-            await PreBakedMopupService.GetInstance().WrapTaskInLoader(action, Colors.Blue, Colors.White, LoadingReasons(), Colors.Black);
+            //await PreBakedMopupService.GetInstance().WrapTaskInLoader(action, Colors.Blue, Colors.White, LoadingReasons(), Colors.Black);
         }
     }
 
