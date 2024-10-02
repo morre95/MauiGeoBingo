@@ -61,6 +61,7 @@
                 <StackLayout>
                     <ActivityIndicator IsRunning="true" Color="Orange" />
                     <Label x:Name="waitingText" Text="Waiting for players to join" HorizontalOptions="Center" TextColor="Black" FontSize="Medium" />
+                    <Button Text="Start game" x:Name="startGame" Clicked="StartGameClicked" IsVisible="False" BackgroundColor="Black" TextColor="White" />
                 </StackLayout>
             </Border>
         </VerticalStackLayout>

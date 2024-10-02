@@ -7,13 +7,15 @@ using Mopups.PreBaked.PopupPages.Loader;
 using Mopups.PreBaked.Services;
 using System.Diagnostics;
 using System.Net;
+using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Websocket.Client;
 
 namespace MauiGeoBingo.Pagaes;
 
-public partial class ButtonsPage : ContentPage
+public partial class ButtonsPage : ContentPage, IDisposable
 {
     private KeyValuePair<string, Button>? ActiveBingoButton { get; set; }
 
@@ -23,19 +25,25 @@ public partial class ButtonsPage : ContentPage
 
     private ServerViewModel? Server { get; set; } = null;
 
+    private WebsocketClient _client;
+
     public ButtonsPage()
     {
         InitializeComponent();
 
-        _bingoButtons = new Button[4, 4];
-        gameGrid.Loaded += GridLoaded;
+        var url = new Uri(AppSettings.LocalWSBaseEndpoint);
+        _client = new WebsocketClient(url);
 
-        
+        _bingoButtons = new Button[4, 4];
+        gameGrid.Loaded += GridLoaded; 
     }
 
     public ButtonsPage(ServerViewModel server)
     {
         InitializeComponent();
+
+        var url = new Uri(AppSettings.LocalWSBaseEndpoint);
+        _client = new WebsocketClient(url);
 
         _bingoButtons = new Button[4, 4];
         gameGrid.Loaded += GridLoaded;
@@ -45,6 +53,8 @@ public partial class ButtonsPage : ContentPage
 
     private async void GridLoaded(object? sender, EventArgs e)
     {
+        await Task.Delay(500);
+
         CreateButtons();
 
         if (Server != null)
@@ -73,6 +83,7 @@ public partial class ButtonsPage : ContentPage
 
             waitingBox.IsVisible = true;
 
+            await Task.Delay(100);
             for (int row = 0; row < _bingoButtons.GetLength(0); row++)
             {
                 for (int col = 0; col < _bingoButtons.GetLength(1); col++)
@@ -85,39 +96,78 @@ public partial class ButtonsPage : ContentPage
             Task action;
             if (Server.IsMyServer)
             {
-                /*action = Task.Run(async () => {
-                    await Task.Delay(1000 * 60 * 5);
-                });*/
+                startGame.IsVisible = true;
             } 
-            else
+
+            var url = new Uri(AppSettings.LocalWSBaseEndpoint);
+            _client = new WebsocketClient(url);
+
+            _client.MessageReceived.Subscribe(async msg =>
             {
-                /*IDispatcherTimer timer;
-                timer = Dispatcher.CreateTimer();
-                timer.Interval = TimeSpan.FromSeconds(5);
-                timer.Tick += (s, e) =>
+                var recived = JsonSerializer.Deserialize<ResponseData>(msg.ToString());
+                if (recived != null)
                 {
-                    // Komma här om ägaren är klar
-                };
-                timer.Start();*/
+                    //Debug.WriteLine($"recived: {recived.IsRunning}");
+                    if (recived.Type == "sub_auth")
+                    {
+                        await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
+                        {
+                            action = "publish",
+                            topic = "waiting_for_server",
+                            message = "Give me the player count",
+                            security_key = recived.SecurityKey,
+                            game_id = Server.GameId,
+                        })));
+                    }
+                    else if (recived.Type == "message")
+                    {
+                        MainThread.BeginInvokeOnMainThread(() =>
+                        {
+                            int playerNum = recived.PlayerCount;
+                            waitingText.Text = $"Waiting for players to join.\n{playerNum} joined so far";
 
-                /*while (true)
-                {
-                    // Gör en check här till ägaren är klar och svaret från api servern har svarat med en tid att vänta
-                    if (game.IsReadyBool) { break; }
-                }*/
+                            //Debug.WriteLine($"IsRunning: {recived.IsRunning}");
+                            if (recived.IsRunning)
+                            {
+                                waitingBox.IsVisible = false;
+                                for (int row = 0; row < _bingoButtons.GetLength(0); row++)
+                                {
+                                    for (int col = 0; col < _bingoButtons.GetLength(1); col++)
+                                    {
+                                        _bingoButtons[row, col].IsEnabled = true;
+                                    }
+                                }
+                                Unsubscribe();
+                            }
+                        });
+                    }
+                    
+                }
+            });
 
-                /*action = Task.Run(async () => {
-                    await Task.Delay(1000 * 60 * 5);
-                });*/
-            }
+            await _client.Start();
 
-            //await PreBakedMopupService.GetInstance().WrapTaskInLoader(action, Colors.Blue, Colors.White, LoadingReasons(), Colors.Black);
+            await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
+            {
+                action = "subscribe",
+                topic = "waiting_for_server",
+            })));
+
         }
     }
 
-    private List<string> LoadingReasons()
+    private async void StartGameClicked(object sender, EventArgs e)
     {
-        return ["The game will start soon", "It is near now....", "Get ready, soon it starts..."];
+        string endpoint = AppSettings.LocalBaseEndpoint;
+        HttpRequest rec = new($"{endpoint}/set/game/as/running");
+
+        if (Server != null)
+        {
+            await rec.PostAsync<ResponseData>(new
+            {
+                game_id = Server.GameId
+            });
+        }
     }
 
     private async void CreateButtons()
@@ -228,7 +278,7 @@ public partial class ButtonsPage : ContentPage
         if (sender is Button btn)
         {
             string text = btn.Text;
-            Debug.WriteLine(text);
+            //Debug.WriteLine(text);
             questionGrid.Clear();
 
             if (ActiveBingoButton != null)
@@ -302,6 +352,22 @@ public partial class ButtonsPage : ContentPage
     {
         [JsonPropertyName("success")]
         public bool Success { get; set; }
+
+        [JsonPropertyName("player_count")]
+        public int PlayerCount { get; set; }
+
+        [JsonPropertyName("type")]
+        public string? Type { get; set; }
+        [JsonPropertyName("topic")]
+        public string? Topic { get; set; }
+        [JsonPropertyName("security_key")]
+        public string? SecurityKey { get; set; }
+
+        [JsonPropertyName("player_ids")]
+        public int[]? PlayerIds { get; set; }
+
+        [JsonPropertyName("is_running")]
+        public bool IsRunning { get; set; }
     }
 
     private bool CheckIfBingo()
@@ -372,6 +438,27 @@ public partial class ButtonsPage : ContentPage
         }
 
         return false;
+    }
+
+    private async void Unsubscribe()
+    {
+        await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
+        {
+            action = "unsubscribe",
+            topic = "waiting_for_server",
+        })));
+    }
+
+    public async void Dispose()
+    {
+        Unsubscribe();
+
+        if (_client.IsRunning)
+        {
+            await Task.Delay(50);
+            await _client.Stop(WebSocketCloseStatus.NormalClosure, $"Closed in server by the {this.GetType().Name} client");
+            _client.Dispose();
+        }
     }
 }
 

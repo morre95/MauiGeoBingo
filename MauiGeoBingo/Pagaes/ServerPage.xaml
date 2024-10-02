@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="MauiGeoBingo.Pagaes.ServerPage">
+             x:Class="MauiGeoBingo.Pagaes.ServerPage"
+             Unloaded="ServerPageUnloaded">
 
     <ContentPage.Resources>
         <Style TargetType="Button">
@@ -50,7 +51,7 @@
                                 <Label Grid.Row="0" Grid.Column="3" Text="{Binding Created}" />
                                 <!--<Button Grid.Row="0" Grid.Column="4" Text="Go To" Margin="0,5,5,0" Clicked="GoToServerClicked" IsEnabled="{Binding IsMeAllowedToPlay}" />-->
                                 <Button Grid.Row="0" Grid.Column="4" Text="Go To" Margin="0,5,5,0" Clicked="GoToServerClicked" />
-                                <Button Grid.Row="0" Grid.Column="5" Text="Delete" Margin="0,5,5,0" Clicked="DeleteServerClicked" IsEnabled="{Binding IsMyServer}" Command="{Binding DeleteCommand}" />
+                                <Button Grid.Row="0" Grid.Column="5" Text="Delete" Margin="0,5,5,0" Clicked="DeleteServerClicked" IsEnabled="{Binding IsMyServer}" />
                             </Grid>
                         </ViewCell>
                     </DataTemplate>

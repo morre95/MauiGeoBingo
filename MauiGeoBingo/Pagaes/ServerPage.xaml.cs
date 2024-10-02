@@ -3,6 +3,7 @@ using Microsoft.Maui.Controls;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Net.WebSockets;
 using System.Reactive;
 using System.Runtime.ConstrainedExecution;
 using System.Text.Json;
@@ -66,6 +67,7 @@ public partial class ServerPage : ContentPage
             var page = Navigation.NavigationStack.LastOrDefault();
             await Navigation.PushAsync(new ButtonsPage(server));
             Navigation.RemovePage(page);
+            _serverViewModel.Dispose();
         }
     }
 
@@ -75,6 +77,11 @@ public partial class ServerPage : ContentPage
         {
             await Navigation.PushAsync(new CreateServerPage());
         }
+    }
+
+    private void ServerPageUnloaded(object sender, EventArgs e)
+    {
+        _serverViewModel.Dispose();
     }
 }
 
@@ -192,8 +199,8 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable
         var url = new Uri(endpoint);
         _client = new WebsocketClient(url);
 
-        /*_client.ReconnectTimeout = TimeSpan.FromSeconds(30);
-        _client.ReconnectionHappened.Subscribe(info => Debug.WriteLine($"Reconnection happened, type: {info.Type}"));*/
+        _client.ReconnectTimeout = TimeSpan.FromSeconds(30);
+        _client.ReconnectionHappened.Subscribe(info => Debug.WriteLine($"Reconnection happened, type: {info.Type}"));
 
         _client.MessageReceived.Subscribe(HandleSubscription);
     }
@@ -250,6 +257,8 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable
                             IsMyServer = server.IsMyServer,
                             _isMap = server.IsMap, 
                         });
+                        if (server.PlayerIds != null)
+                        Debug.WriteLine($"Number of players PlayerIds.Length: {server.PlayerIds.Length}, server.NumberOfPlayers: {server.NumberOfPlayers}");
                     });
                 }
 
@@ -273,9 +282,18 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable
         })));
     }
 
-    public void Dispose()
+    public async void Dispose()
     {
         Unsubscribe();
+
+        // FIXME: Båda dessa rader under här skapar Debuggern att kracha. Den funkar utan debuggern dock
+        //MainThread.BeginInvokeOnMainThread(() => _client?.Dispose());
+        if (_client.IsRunning) 
+        {
+            await Task.Delay(50);
+            await _client.Stop(WebSocketCloseStatus.NormalClosure, $"Closed in server by the {this.GetType().Name} client");
+            _client.Dispose(); 
+        }
     }
 }
 
@@ -318,8 +336,8 @@ public class Server
     [JsonPropertyName("is_map")]
     public int IsMap { get; set; }
 
-    [JsonPropertyName("last_modified")]
-    public string? LastModified { get; set; }
+    public string? last_modified { get; set; }
+    public DateTime? LastModified => StringToDate(last_modified);
 
 
     public int is_active { get; set; }
