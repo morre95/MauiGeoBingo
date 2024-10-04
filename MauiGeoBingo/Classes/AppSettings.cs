@@ -58,6 +58,12 @@ namespace MauiGeoBingo.Classes
             set { Preferences.Set(nameof(QuizCategorie), value); }
         }
 
+        public static string QuizJsonFileName
+        {
+            get { return Preferences.Get(nameof(QuizJsonFileName), "quizDB.json"); }
+            set { Preferences.Set(nameof(QuizJsonFileName), value); }
+        }
+
         private static string _baseEndpoint => DeviceInfo.Platform == DevicePlatform.Android ? "http://10.0.2.2:5000" : "http://127.0.0.1:5000";
         public static string LocalBaseEndpoint => _baseEndpoint;
 
@@ -78,21 +84,16 @@ namespace MauiGeoBingo.Classes
             PlayerName = "player";
 
             QuizCategorie = "General Knowledge";
+
+            if (QuizJsonFileName != "quizDB.json")
+            {
+                File.Delete(QuizJsonFileName);
+            }
+
+            QuizJsonFileName = "quizDB.json";
         }
 
 
-        public async Task SaveFile(string fileName, CancellationToken cancellationToken)
-        {
-            using var stream = new MemoryStream(Encoding.Default.GetBytes("Hello from the Community Toolkit!"));
-            var fileSaverResult = await FileSaver.Default.SaveAsync(fileName, stream, cancellationToken);
-            if (fileSaverResult.IsSuccessful)
-            {
-                await Toast.Make($"The file was saved successfully to location: {fileSaverResult.FilePath}").Show(cancellationToken);
-            }
-            else
-            {
-                await Toast.Make($"The file was not saved successfully with error: {fileSaverResult.Exception.Message}").Show(cancellationToken);
-            }
-        }
+        
     }
 }

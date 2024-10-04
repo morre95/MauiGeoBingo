@@ -20,24 +20,28 @@ namespace MauiGeoBingo
             //Preferences.Clear(); Resetting all settings
         }
 
-        private async void Map_Clicked(object sender, EventArgs e)
+        private async void MapClicked(object sender, EventArgs e)
         {
             await Navigation.PushAsync(new MapPage());
         }
 
-        private async void Buttons_Clicked(object sender, EventArgs e)
+        private async void ButtonsClicked(object sender, EventArgs e)
         {
             await Navigation.PushAsync(new ButtonsPage());
         }
 
-        private async void Settings_Clicked(object sender, EventArgs e)
+        private async void SettingsClicked(object sender, EventArgs e)
         {
             await Navigation.PushAsync(new SettingsPage());
         }
 
-        private async void ScrollView_Loaded(object sender, EventArgs e)
+        private async void ScrollViewLoaded(object sender, EventArgs e)
         {
-            if (AppSettings.PlayerId == 0)
+            if (AppSettings.PlayerId == 0 && !await Helpers.SavePlayerName(AppSettings.PlayerName))
+            {
+                await DisplayAlert("Alert", "The game server is not working properly", "OK");
+            }
+            /*if (AppSettings.PlayerId == 0)
             {
                 string endpoint = AppSettings.LocalBaseEndpoint;
                 HttpRequest rec = new($"{endpoint}/new/player");
@@ -59,10 +63,10 @@ namespace MauiGeoBingo
                 {
                     await DisplayAlert("Alert", "The game server is not working properly", "OK");
                 }
-            }
+            }*/
         }
 
-        private async void Server_Clicked(object sender, EventArgs e)
+        private async void ServerClicked(object sender, EventArgs e)
         {
             await Navigation.PushAsync(new ServerPage());
         }

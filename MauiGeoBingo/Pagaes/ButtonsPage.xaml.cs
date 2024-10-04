@@ -172,7 +172,12 @@ public partial class ButtonsPage : ContentPage, IDisposable
 
     private async void CreateButtons()
     {
-        Quiz? quiz = await Helpers.ReadJsonFile<Quiz>(@"quizDB.json");
+        Quiz? quiz = null;
+        string fileName = AppSettings.QuizJsonFileName;
+        if (await FileSystem.Current.AppPackageFileExistsAsync(fileName))
+        { 
+            quiz = await Helpers.ReadJsonFile<Quiz>(fileName); 
+        }
 
         if (quiz != null && quiz.Results != null)
         {
@@ -460,28 +465,6 @@ public partial class ButtonsPage : ContentPage, IDisposable
             _client.Dispose();
         }
     }
-}
-
-public class Quiz
-{
-    [JsonPropertyName("response_code")]
-    public int ResponseCode { get; set; }
-    public List<Result> Results { get; set; } = new List<Result>();
-    public string Token { get; set; }
-}
-
-public class Result
-{
-    public string Category { get; set; }
-    public string Type { get; set; }
-    public string Difficulty { get; set; }
-    public string Question { get; set; }
-
-    [JsonPropertyName("correct_answer")]
-    public string CorrectAnswer { get; set; }
-
-    [JsonPropertyName("incorrect_answers")]
-    public List<string> IncorrectAnswers { get; set; }
 }
 
 public class QuizButton : Button

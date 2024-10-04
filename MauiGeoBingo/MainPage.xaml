@@ -28,12 +28,12 @@
         </Style>
     </ContentPage.Resources>
 
-    <ScrollView Loaded="ScrollView_Loaded">
+    <ScrollView Loaded="ScrollViewLoaded">
         <VerticalStackLayout Padding="30,0" Spacing="25">
-            <Button Text="Go to Map" Clicked="Map_Clicked" />
-            <Button Text="Go to Buttons" Clicked="Buttons_Clicked" />
-            <Button Text="Settings" Clicked="Settings_Clicked" />
-            <Button Text="Server" Clicked="Server_Clicked" />
+            <Button Text="Go to Map" Clicked="MapClicked" />
+            <Button Text="Go to Buttons" Clicked="ButtonsClicked" />
+            <Button Text="Settings" Clicked="SettingsClicked" />
+            <Button Text="Server" Clicked="ServerClicked" />
         </VerticalStackLayout>
     </ScrollView>
 
