@@ -64,6 +64,11 @@ namespace MauiGeoBingo.Classes
             set { Preferences.Set(nameof(QuizJsonFileName), value); }
         }
 
+        /// <summary>
+        /// Returns the creation time od the quiz json file. If it not exists it returns DateTime.MinValue
+        /// </summary>
+        public static string QuizJsonFileCreationTime => File.Exists(QuizJsonFileName) ? File.GetCreationTime(QuizJsonFileName).ToString() : DateTime.MinValue.ToString();
+
         private static string _baseEndpoint => DeviceInfo.Platform == DevicePlatform.Android ? "http://10.0.2.2:5000" : "http://127.0.0.1:5000";
         public static string LocalBaseEndpoint => _baseEndpoint;
 

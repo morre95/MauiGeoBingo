@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace MauiGeoBingo.Classes;
 
-internal class HttpRequest
+internal class HttpRequest : IDisposable
 {
     private Uri _uri;
     private HttpClient _httpClient;
@@ -63,6 +63,11 @@ internal class HttpRequest
             return JsonSerializer.Deserialize<T>(jsonResponse);
         }
         return default;
+    }
+
+    public void Dispose()
+    {
+        _httpClient.Dispose();
     }
 }
 

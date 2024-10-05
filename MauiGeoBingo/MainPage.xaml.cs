@@ -18,6 +18,10 @@ namespace MauiGeoBingo
             InitializeComponent();
 
             //Preferences.Clear(); Resetting all settings
+
+            // C:\Users\erikm\AppData\Local\Packages\com.companyname.mauigeobingo_9zz4h110yvjzm\LocalState\quizDb_2024-10-05.json
+
+            Debug.WriteLine($"Json Quiz file: {AppSettings.QuizJsonFileName}");
         }
 
         private async void MapClicked(object sender, EventArgs e)
@@ -41,29 +45,7 @@ namespace MauiGeoBingo
             {
                 await DisplayAlert("Alert", "The game server is not working properly", "OK");
             }
-            /*if (AppSettings.PlayerId == 0)
-            {
-                string endpoint = AppSettings.LocalBaseEndpoint;
-                HttpRequest rec = new($"{endpoint}/new/player");
-
-                Player? player = await rec.PutAsync<Player>(new Player
-                {
-                    PlayerId = AppSettings.PlayerId,
-                    PlayerName = AppSettings.PlayerName,
-                });
-
-                if (player != null)
-                {
-                    Debug.WriteLine("player name: " + player.PlayerName);
-                    Debug.WriteLine("player id: " + player.PlayerId);
-
-                    AppSettings.PlayerId = player.PlayerId ?? 0;
-                }
-                else
-                {
-                    await DisplayAlert("Alert", "The game server is not working properly", "OK");
-                }
-            }*/
+            
         }
 
         private async void ServerClicked(object sender, EventArgs e)

@@ -4,11 +4,9 @@ using CommunityToolkit.Maui.Storage;
 using CommunityToolkit.Maui.Views;
 using MauiGeoBingo.Classes;
 using System.Diagnostics;
-using System.Security.AccessControl;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
-using static System.Net.Mime.MediaTypeNames;
+
 
 namespace MauiGeoBingo.Pagaes;
 
@@ -52,7 +50,6 @@ public partial class SettingsPage : ContentPage
     {
         if (sender is Entry entry)
         {
-
             if (!await Helpers.SavePlayerName(entry.Text))
             {
                 await DisplayAlert("Alert", "Something whent wrong", "OK");
@@ -61,25 +58,6 @@ public partial class SettingsPage : ContentPage
             {
                 await Toast.Make($"You changed your player name to: '{entry.Text}'").Show();
             }
-
-            /*string endpoint = AppSettings.LocalBaseEndpoint;
-            HttpRequest rec = new($"{endpoint}/update/player");
-
-            Player? player = await rec.PostAsync<Player>(new Player
-            {
-                PlayerId = AppSettings.PlayerId,
-                PlayerName = entry.Text,
-            });
-
-            if (player == null)
-            {
-                await DisplayAlert("Alert", "Something whent wrong", "OK");
-            }
-            else
-            {
-                AppSettings.PlayerName = entry.Text;
-                await Toast.Make($"You changed your player name to: '{entry.Text}'").Show();
-            }*/
         }
     }
 
@@ -102,22 +80,25 @@ public partial class SettingsPage : ContentPage
 
     private async void DownloadNewDBClicked(object sender, EventArgs e)
     {
-        updateDbButton.IsEnabled = !updateDbButton.IsEnabled;
-        updateingDbStatus.IsVisible = !updateingDbStatus.IsVisible;
+        updateDbButton.IsEnabled = false;
+        updateingDbStatus.IsVisible = true;
 
-        //progressText.Text = "Downloading...";
-
-        string fresult = await DownloadFromQuizeDb(updateQuestionDbProg);
-        string? filePath = await SaveFile($"quizDb_{DateOnly.FromDateTime(DateTime.Now)}.json", fresult);
+        string result = await DownloadFromQuizeDb(updateQuestionDbProg);
+        string? filePath = await SaveFile($"quizDb_{DateOnly.FromDateTime(DateTime.Now)}.json", result);
 
         if (filePath != null)
         {
             AppSettings.QuizJsonFileName = filePath;
             await Toast.Make("The file was saved successfully").Show();
+            JsonFileLastUpdateTextLoaded(jsonFileLastUpdateText, e);
+        }
+        else
+        {
+            await Toast.Make("The file was NOT saved successfully for some reason").Show();
         }
 
-        updateingDbStatus.IsVisible = !updateingDbStatus.IsVisible;
-        updateDbButton.IsEnabled = !updateDbButton.IsEnabled;
+        updateingDbStatus.IsVisible = false;
+        updateDbButton.IsEnabled = true;
     }
 
     private async Task<string> DownloadFromQuizeDb(ProgressBar progressBar)
@@ -132,26 +113,14 @@ public partial class SettingsPage : ContentPage
     private async Task<string?> SaveFile(string fileName, string text, CancellationToken cancellationToken = default)
     {
         return await Helpers.WirteToFile(fileName, text);
+    }
 
-        /*using var stream = new MemoryStream(Encoding.Default.GetBytes(text));
-
-        progressText.Text = "Saving file...";
-
-        var saverProgress = new Progress<double>(percentage => updateQuestionDbProg.Progress = percentage);
-        
-
-        var fileSaverResult = await FileSaver.Default.SaveAsync(fileName, stream, saverProgress, cancellationToken);
-
-        if (fileSaverResult.IsSuccessful)
+    private void JsonFileLastUpdateTextLoaded(object sender, EventArgs e)
+    {
+        if (sender is Label label && AppSettings.QuizJsonFileCreationTime != DateTime.MinValue.ToString())
         {
-            await Toast.Make($"The file was saved successfully to location: {fileSaverResult.FilePath}").Show(cancellationToken);
-            return fileSaverResult.FilePath;
+            label.Text = $"Last updated: {AppSettings.QuizJsonFileCreationTime}";
+            label.IsVisible = true;
         }
-        else
-        {
-            await Toast.Make($"The file was not saved successfully with error: {fileSaverResult.Exception.Message}").Show(cancellationToken);
-            return null;
-        }*/
-
     }
 }
