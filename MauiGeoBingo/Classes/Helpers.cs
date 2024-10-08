@@ -35,7 +35,6 @@ namespace MauiGeoBingo.Classes
                 {
                     ReadCommentHandling = JsonCommentHandling.Skip,
                     AllowTrailingCommas = true,
-                    WriteIndented = true,
                 };
                 return await JsonSerializer.DeserializeAsync<T>(fileStream, options);
             }

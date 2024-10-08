@@ -52,7 +52,7 @@ public partial class CreateServerPage : ContentPage
 
             if (game == null)
             {
-                await DisplayAlert("Alert", "Something whent wrong", "OK");
+                await DisplayAlert("Alert", "No server created", "OK");
             }
             else
             {

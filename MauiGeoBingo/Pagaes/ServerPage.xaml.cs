@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Reactive;
+using System.Runtime.CompilerServices;
 using System.Runtime.ConstrainedExecution;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -223,6 +224,8 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable
         })));
     }
 
+    int _msgCount = 0;
+
     private async void HandleSubscription(ResponseMessage message)
     {
         //Debug.WriteLine($"Message received: {message}");
@@ -243,11 +246,12 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable
             }
             else if (recived.Type == "message")
             {
-                Debug.WriteLine($"message: {message}");
+                Debug.WriteLine($"Websocket message({++_msgCount}): {message},\nServer count: {recived.Servers.Count}");
                 foreach (var server in recived.Servers)
                 {
                     MainThread.BeginInvokeOnMainThread(() =>
                     {
+                        Debug.WriteLine("Japp inne i main thread");
                         Servers.Add(new()
                         {
                             GameName = server.GameName,
@@ -262,13 +266,26 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable
                     });
                 }
 
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    Servers.Add(new ServerViewModel
+                    {
+                        GameName = "Test spelet",
+                        Created = DateTime.Now,
+                        NumberOfPlayers = 1,
+                        GameId = 55,
+                        IsMyServer = false,
+                        _isMap = 0
+                    });
+                });
+
                 OnPropertyChanged(nameof(Servers));
             }
         }
     
     }
 
-    protected virtual void OnPropertyChanged(string propertyName)
+    protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = "")
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
@@ -292,7 +309,7 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable
         {
             await Task.Delay(50);
             await _client.Stop(WebSocketCloseStatus.NormalClosure, $"Closed in server by the {this.GetType().Name} client");
-            _client.Dispose(); 
+            _client.Dispose();
         }
     }
 }
