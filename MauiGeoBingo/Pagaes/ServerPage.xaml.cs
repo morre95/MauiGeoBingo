@@ -87,7 +87,7 @@ public partial class ServerPage : ContentPage
 }
 
 
-public class ServerViewModel : INotifyPropertyChanged, IDisposable
+public class ServerViewModel : INotifyPropertyChanged, IDisposable, IEquatable<Server>
 {
     private string? _gameName;
     private int? _gameId;
@@ -104,7 +104,7 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable
             if (_gameName != value)
             {
                 _gameName = value;
-                OnPropertyChanged(nameof(GameName));
+                OnPropertyChanged();
             }
         }
     }
@@ -117,7 +117,7 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable
             if (_gameId != value)
             {
                 _gameId = value;
-                OnPropertyChanged(nameof(GameId));
+                OnPropertyChanged();
             }
         }
     }
@@ -130,7 +130,7 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable
             if (_numberOfPlayers != value)
             {
                 _numberOfPlayers = value;
-                OnPropertyChanged(nameof(NumberOfPlayers));
+                OnPropertyChanged();
             }
         }
     }
@@ -143,7 +143,7 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable
             if (_isMyServer != value)
             {
                 _isMyServer = value;
-                OnPropertyChanged(nameof(IsMyServer));
+                OnPropertyChanged();
             }
         }
     }
@@ -156,7 +156,7 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable
         set 
         { 
             _isMap = value == "Map" ? 1 : 0; 
-            OnPropertyChanged(nameof(_isMap)); 
+            OnPropertyChanged(); 
         } 
     }
 
@@ -168,7 +168,7 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable
             if (_created != value)
             {
                 _created = value;
-                OnPropertyChanged(nameof(_created));
+                OnPropertyChanged();
             }
         }
     }
@@ -181,7 +181,7 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable
             if (_isMeAllowedToPlay != value)
             {
                 _isMeAllowedToPlay = value;
-                OnPropertyChanged(nameof(_isMeAllowedToPlay));
+                OnPropertyChanged();
             }
         }
     }
@@ -251,7 +251,6 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable
                 {
                     MainThread.BeginInvokeOnMainThread(() =>
                     {
-                        Debug.WriteLine("Japp inne i main thread");
                         Servers.Add(new()
                         {
                             GameName = server.GameName,
@@ -261,12 +260,12 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable
                             IsMyServer = server.IsMyServer,
                             _isMap = server.IsMap, 
                         });
-                        if (server.PlayerIds != null)
-                        Debug.WriteLine($"Number of players PlayerIds.Length: {server.PlayerIds.Length}, server.NumberOfPlayers: {server.NumberOfPlayers}");
+                        //if (server.PlayerIds != null)
+                        //Debug.WriteLine($"Number of players PlayerIds.Length: {server.PlayerIds.Length}, server.NumberOfPlayers: {server.NumberOfPlayers}");
                     });
                 }
 
-                MainThread.BeginInvokeOnMainThread(() =>
+                /*MainThread.BeginInvokeOnMainThread(() =>
                 {
                     Servers.Add(new ServerViewModel
                     {
@@ -277,7 +276,7 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable
                         IsMyServer = false,
                         _isMap = 0
                     });
-                });
+                });*/
 
                 OnPropertyChanged(nameof(Servers));
             }
@@ -285,7 +284,7 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable
     
     }
 
-    protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = "")
+    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
@@ -311,6 +310,19 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable
             await _client.Stop(WebSocketCloseStatus.NormalClosure, $"Closed in server by the {this.GetType().Name} client");
             _client.Dispose();
         }
+    }
+
+    public bool Equals(Server? other)
+    {
+        if (other == null)
+            return false;
+
+        return GameName == other.GameName &&
+               Created.Equals(other.Created) &&
+               NumberOfPlayers.Equals(other.NumberOfPlayers) &&
+               GameId.Equals(other.GameId) &&
+               IsMyServer.Equals(other.IsMyServer) &&
+               _isMap.Equals(other.IsMap);
     }
 }
 
