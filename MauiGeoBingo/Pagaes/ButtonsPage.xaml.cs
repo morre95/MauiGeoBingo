@@ -3,6 +3,7 @@ using CommunityToolkit.Maui.Storage;
 using CommunityToolkit.Maui.Views;
 using MauiGeoBingo.Classes;
 using MauiGeoBingo.Extensions;
+using Microsoft.Maui.Graphics;
 using Mopups.PreBaked.PopupPages.Loader;
 using Mopups.PreBaked.Services;
 using System.Diagnostics;
@@ -35,7 +36,9 @@ public partial class ButtonsPage : ContentPage, IDisposable
         _client = new WebsocketClient(url);
 
         _bingoButtons = new Button[4, 4];
-        gameGrid.Loaded += GridLoaded; 
+        gameGrid.Loaded += GridLoaded;
+
+        Server = null;
     }
 
     public ButtonsPage(ServerViewModel server)
@@ -57,47 +60,22 @@ public partial class ButtonsPage : ContentPage, IDisposable
 
         CreateButtons();
 
-        if (Server != null)
+        if (Server != null && await AddPlayerToGame())
         {
-            // TODO: Fixa så att alla startar samtidigt. 
-            /*
-            Exempel:
-            Alla klienter är redo och ägaren har tryckt på ok. (Vem som är ägare finns i variabeln Server.IsMyServer)
-            När ägaren tryckt ok börjar en nedräkning på tex 10 sekunder som servern initsierar och skickar antal 
-            sekunder kvar till respektive klient. Som sedan börjar nedräkningen genom att sätta tiden att vänta med await Task.Delay();
-             */
-            string endpoint = AppSettings.LocalBaseEndpoint;
-            HttpRequest rec = new($"{endpoint}/add/player/to/game");
-
-            var response = await rec.PutAsync<ResponseData>(new 
-            {
-                player_id = AppSettings.PlayerId,
-                game_id = Server.GameId,
-            });
-
-            if (response == null)
-            {
-                await DisplayAlert("Alert", "Somthing with ther server is wrong", "OK");
-                return;
-            }
 
             waitingBox.IsVisible = true;
 
-            await Task.Delay(100);
-            for (int row = 0; row < _bingoButtons.GetLength(0); row++)
+            while (_bingoButtons[3, 3] == null)
             {
-                for (int col = 0; col < _bingoButtons.GetLength(1); col++)
-                {
-                    _bingoButtons[row, col].IsEnabled = false;
-                }
+                await Task.Delay(10);
             }
 
-            // TBD: Tror det kan vara så att jag behöver en websocket här.
-            Task action;
+            DisableAllButtons();
+
             if (Server.IsMyServer)
             {
                 startGame.IsVisible = true;
-            } 
+            }
 
             var url = new Uri(AppSettings.LocalWSBaseEndpoint);
             _client = new WebsocketClient(url);
@@ -141,7 +119,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
                             }
                         });
                     }
-                    
+
                 }
             });
 
@@ -154,6 +132,37 @@ public partial class ButtonsPage : ContentPage, IDisposable
             })));
 
         }
+    }
+
+    private void DisableAllButtons()
+    {
+        for (int row = 0; row < _bingoButtons.GetLength(0); row++)
+        {
+            for (int col = 0; col < _bingoButtons.GetLength(1); col++)
+            {
+                _bingoButtons[row, col].IsEnabled = false;
+            }
+        }
+    }
+
+    private async Task<bool> AddPlayerToGame()
+    {
+        if (Server == null) return false;
+
+        string endpoint = AppSettings.LocalBaseEndpoint;
+        HttpRequest rec = new($"{endpoint}/add/player/to/game");
+        var response = await rec.PutAsync<ResponseData>(new
+        {
+            player_id = AppSettings.PlayerId,
+            game_id = Server.GameId,
+        });
+
+        if (response == null)
+        {
+            await DisplayAlert("Alert", "Somthing with ther server is wrong", "OK");
+            return false;
+        }
+        return true;
     }
 
     private async void StartGameClicked(object sender, EventArgs e)
@@ -320,6 +329,13 @@ public partial class ButtonsPage : ContentPage, IDisposable
 
                         await SendStatusUpdateAsync(row, col, number, true);
 
+                        if (Server != null) 
+                        {
+                            await SendStatusUpdateAsync(row, col, number, true);
+                        }
+
+                        DisableAllButtons();
+
                         await Toast.Make("Grattis du vann!!!", CommunityToolkit.Maui.Core.ToastDuration.Long).Show();
                     }
                     else
@@ -327,8 +343,17 @@ public partial class ButtonsPage : ContentPage, IDisposable
                         string[] parts = activeBtn.ClassId.Split('-');
                         int row = int.Parse(parts[0]);
                         int col = int.Parse(parts[1]);
-                        
-                        await SendStatusUpdateAsync(row, col, number);
+
+                        int? winner = null;
+                        if (Server != null) winner = await SendStatusUpdateAsync(row, col, number);
+
+                        if (winner != null)
+                        {
+                            DisableAllButtons();
+
+                            string playerName = await GetNameAsync(winner);
+                            await Toast.Make($"'{playerName}' har vunnit!!!", CommunityToolkit.Maui.Core.ToastDuration.Long).Show();
+                        }
                     }
 
                 }
@@ -338,11 +363,25 @@ public partial class ButtonsPage : ContentPage, IDisposable
         }
     }
 
-    private async Task SendStatusUpdateAsync(int row, int col, int value, bool winningMove = false)
+    private async Task<string> GetNameAsync(int? winner)
+    {
+        string endpoint = AppSettings.LocalBaseEndpoint;
+        HttpRequest rec = new($"{endpoint}/player/name?player_id={winner}");
+
+        var result = await rec.GetAsync<ResponseData>();
+
+        if (result != null && result.PlayerName != null)
+        {
+            return result.PlayerName;
+        }
+        return string.Empty;
+    }
+
+    private async Task<int?> SendStatusUpdateAsync(int row, int col, int value, bool winningMove = false)
     {
         string endpoint = AppSettings.LocalBaseEndpoint;
         HttpRequest rec = new($"{endpoint}/update/game");
-        await rec.PostAsync<ResponseData>(new
+        var result = await rec.PostAsync<ResponseData>(new
         {
             player_id = AppSettings.PlayerId,
             game_id = AppSettings.CurrentGameId,
@@ -351,6 +390,10 @@ public partial class ButtonsPage : ContentPage, IDisposable
             num = value,
             winning_move = winningMove,
         });
+
+        if (result == null) return null;
+
+        return result.Winner;
     }
 
     public class ResponseData
@@ -373,6 +416,12 @@ public partial class ButtonsPage : ContentPage, IDisposable
 
         [JsonPropertyName("is_running")]
         public bool IsRunning { get; set; }
+
+        [JsonPropertyName("winner")]
+        public int? Winner { get; set; }
+        
+        [JsonPropertyName("player_name")]
+        public string? PlayerName { get; set; }
     }
 
     private bool CheckIfBingo()

@@ -5,6 +5,7 @@ using CommunityToolkit.Maui.Views;
 using MauiGeoBingo.Classes;
 using MauiGeoBingo.Pagaes;
 using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 using System.Threading;
@@ -16,12 +17,6 @@ namespace MauiGeoBingo
         public MainPage()
         {
             InitializeComponent();
-
-            //Preferences.Clear(); Resetting all settings
-
-            // C:\Users\erikm\AppData\Local\Packages\com.companyname.mauigeobingo_9zz4h110yvjzm\LocalState\quizDb_2024-10-05.json
-
-            Debug.WriteLine($"Json Quiz file: {AppSettings.QuizJsonFileName}");
         }
 
         private async void MapClicked(object sender, EventArgs e)
@@ -45,7 +40,6 @@ namespace MauiGeoBingo
             {
                 await DisplayAlert("Alert", "The game server is not working properly", "OK");
             }
-            
         }
 
         private async void ServerClicked(object sender, EventArgs e)
