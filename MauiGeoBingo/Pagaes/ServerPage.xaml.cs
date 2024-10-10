@@ -110,6 +110,15 @@ public partial class ServerPage : ContentPage
             if (result is ServerViewModel resultServer)
             {
                 await Toast.Make($"Servern #{resultServer.GameId}:{resultServer.GameName} är sparad").Show();
+                string endpoint = AppSettings.LocalBaseEndpoint;
+                HttpRequest rec = new($"{endpoint}/edit/game/name");
+
+                Server? response = await rec.PostAsync<Server>(new
+                {
+                    game_id = resultServer.GameId,
+                    game_name = resultServer.GameName,
+                });
+
             }
             else
             {
@@ -265,7 +274,7 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable, IEquatable<S
 
     private async void HandleSubscription(ResponseMessage message)
     {
-        //Debug.WriteLine($"Message received: {message}");
+        Debug.WriteLine($"Message received: {message}");
         var recived = JsonSerializer.Deserialize<Server>(message.ToString());
 
         if (recived == null) return;
