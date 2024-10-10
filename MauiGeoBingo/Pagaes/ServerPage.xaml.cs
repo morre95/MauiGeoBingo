@@ -1,5 +1,9 @@
+using CommunityToolkit.Maui.Alerts;
+using CommunityToolkit.Maui.Views;
 using MauiGeoBingo.Classes;
+using MauiGeoBingo.Popups;
 using Microsoft.Maui.Controls;
+using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -76,13 +80,42 @@ public partial class ServerPage : ContentPage
     {
         if (sender is Button)
         {
-            await Navigation.PushAsync(new CreateServerPage());
+            //await Navigation.PushAsync(new CreateServerPage());
+            CreatingServerPopup popup = new();
+
+            var result = await this.ShowPopupAsync(popup, CancellationToken.None);
+            if (result is bool boolResult)
+            {
+                if (boolResult)
+                {
+                    await Toast.Make("Japp du lyckades precis skapa en ny server").Show();
+                }
+            }
         }
     }
 
     private void ServerPageUnloaded(object sender, EventArgs e)
     {
         _serverViewModel.Dispose();
+    }
+
+    private async void EditServerClicked(object sender, EventArgs e)
+    {
+        if (sender is Button btn && btn.BindingContext is ServerViewModel server)
+        {
+            EditServerPopup popup = new(server);
+
+            var result = await this.ShowPopupAsync(popup, CancellationToken.None);
+
+            if (result is ServerViewModel resultServer)
+            {
+                await Toast.Make($"Servern #{resultServer.GameId}:{resultServer.GameName} är sparad").Show();
+            }
+            else
+            {
+                //await Toast.Make("Du tryckte på cancel").Show();
+            }
+        }
     }
 }
 
@@ -201,7 +234,11 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable, IEquatable<S
         _client = new WebsocketClient(url);
 
         _client.ReconnectTimeout = TimeSpan.FromSeconds(30);
-        _client.ReconnectionHappened.Subscribe(info => Debug.WriteLine($"Reconnection happened, type: {info.Type}"));
+        _client.ReconnectionHappened.Subscribe(async info =>
+        {
+            Debug.WriteLine($"Reconnection happened, type: {info.Type}");
+            await Subscribe();
+        });
 
         _client.MessageReceived.Subscribe(HandleSubscription);
     }
@@ -231,57 +268,122 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable, IEquatable<S
         //Debug.WriteLine($"Message received: {message}");
         var recived = JsonSerializer.Deserialize<Server>(message.ToString());
 
-        if (recived != null)
+        if (recived == null) return;
+
+        if (recived.Type == "sub_auth")
         {
-            if (recived.Type == "sub_auth")
+            Debug.WriteLine($"sub_auth: {message}");
+            await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
             {
-                Debug.WriteLine($"sub_auth: {message}");
-                await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
+                action = "publish",
+                topic = "new_servers",
+                message = "Latest server update",
+                security_key = recived.SecurityKey,
+            })));
+        }
+        else if (recived.Type == "message")
+        {
+            //Debug.WriteLine($"Websocket message({++_msgCount}): {message},\nServer count: {recived.Servers.Count}");
+            if (++_msgCount == 1)
+            {
+                foreach (var server in recived.Servers)
                 {
-                    action = "publish",
-                    topic = "new_servers",
-                    message = "Latest server update",
-                    security_key = recived.SecurityKey,
-                })));
+                    AddNewServer(server);
+                }
             }
-            else if (recived.Type == "message")
+            else if (recived.Servers.Count == Servers.Count)
             {
-                Debug.WriteLine($"Websocket message({++_msgCount}): {message},\nServer count: {recived.Servers.Count}");
                 foreach (var server in recived.Servers)
                 {
                     MainThread.BeginInvokeOnMainThread(() =>
                     {
-                        Servers.Add(new()
+                        Dictionary<int, ServerViewModel> serverToAddDict = new();
+                        foreach (var viewServer in Servers)
                         {
-                            GameName = server.GameName,
-                            Created = server.Created,
-                            NumberOfPlayers = server.NumberOfPlayers,
-                            GameId = server.GameId,
-                            IsMyServer = server.IsMyServer,
-                            _isMap = server.IsMap, 
-                        });
-                        //if (server.PlayerIds != null)
-                        //Debug.WriteLine($"Number of players PlayerIds.Length: {server.PlayerIds.Length}, server.NumberOfPlayers: {server.NumberOfPlayers}");
+                            if (viewServer.GameId.Equals(server.GameId) && !viewServer.Equals(server))
+                            {
+                                // TBD: Det här fungerar. Men kanske onödigt i det här skedet att readera hela raden och lägga till den igen när det här borde fungera
+                                /*GameName = server.GameName;
+                                NumberOfPlayers = server.NumberOfPlayers;*/
+                                ServerViewModel serverToInsert = new()
+                                {
+                                    GameName = server.GameName,
+                                    Created = server.Created,
+                                    NumberOfPlayers = server.NumberOfPlayers,
+                                    GameId = server.GameId,
+                                    IsMyServer = server.IsMyServer,
+                                    _isMap = server.IsMap,
+                                };
+                                int index = Servers.IndexOf(viewServer);
+                                serverToAddDict.Add(index, serverToInsert);
+
+
+                            }
+                        }
+                        foreach (var kvp in serverToAddDict)
+                        {
+                            Servers.RemoveAt(kvp.Key);
+                            Servers.Insert(kvp.Key, kvp.Value);
+                        }
                     });
+
+                }
+            }
+            else if (recived.Servers.Count > Servers.Count)
+            {
+                Debug.WriteLine("Japp det ska läggas till här");
+                var result = recived.Servers.Where(s => Servers.All(s2 => s2.GameId != s.GameId));
+                foreach (var server in result)
+                {
+                    AddNewServer(server);
                 }
 
-                /*MainThread.BeginInvokeOnMainThread(() =>
+                // TODO: Det verar inte uppdaeras på den andra klienten när man rederar
+                /*if (result.Count() <= 0)
                 {
-                    Servers.Add(new ServerViewModel
+                    //var delResult = Servers.Where(s => !recived.Servers.Any(s2 => s2.GameId != s.GameId)).ToList();
+                    //var delResult = recived.Servers.FirstOrDefault(s => Servers.Any(s2 => s2.GameId != s.GameId));
+                    foreach (var server in recived.Servers)
                     {
-                        GameName = "Test spelet",
-                        Created = DateTime.Now,
-                        NumberOfPlayers = 1,
-                        GameId = 55,
-                        IsMyServer = false,
-                        _isMap = 0
-                    });
-                });*/
-
-                OnPropertyChanged(nameof(Servers));
+                        var delResult = Servers.FirstOrDefault(s => s.GameId != server.GameId);
+                        if (delResult != null)
+                            Debug.WriteLine($"Här ska {delResult.GameName} raderas");
+                    }
+                    
+                }*/
+            } 
+            else if (recived.Servers.Count < Servers.Count)
+            {
+                Debug.WriteLine("Japp det ska raderas här");
+                var delResult = Servers.Where(s => recived.Servers.All(s2 => s2.GameId != s.GameId)).ToList();
+                foreach (var server in delResult)
+                {
+                    if (server != null)
+                    {
+                        Debug.WriteLine($"Här ska {server.GameName} raderas");
+                        Servers.Remove(server);
+                    }
+                }
             }
+            OnPropertyChanged(nameof(Servers));
         }
-    
+
+    }
+
+    private void AddNewServer(Server server)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            Servers.Add(new()
+            {
+                GameName = server.GameName,
+                Created = server.Created,
+                NumberOfPlayers = server.NumberOfPlayers,
+                GameId = server.GameId,
+                IsMyServer = server.IsMyServer,
+                _isMap = server.IsMap,
+            });
+        });
     }
 
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
@@ -302,11 +404,9 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable, IEquatable<S
     {
         Unsubscribe();
 
-        // FIXME: Båda dessa rader under här skapar Debuggern att kracha. Den funkar utan debuggern dock
-        //MainThread.BeginInvokeOnMainThread(() => _client?.Dispose());
         if (_client.IsRunning) 
         {
-            await Task.Delay(50);
+            await Task.Delay(150);
             await _client.Stop(WebSocketCloseStatus.NormalClosure, $"Closed in server by the {this.GetType().Name} client");
             _client.Dispose();
         }
@@ -317,7 +417,7 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable, IEquatable<S
         if (other == null)
             return false;
 
-        return GameName == other.GameName &&
+        return GameName.Equals(other.GameName) &&
                Created.Equals(other.Created) &&
                NumberOfPlayers.Equals(other.NumberOfPlayers) &&
                GameId.Equals(other.GameId) &&

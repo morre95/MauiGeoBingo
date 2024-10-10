@@ -33,23 +33,24 @@
         <StackLayout Padding="10">
             <Label Text="Active Server List" FontSize="Medium" FontAttributes="Bold" />
 
-            <Grid RowDefinitions="*" ColumnDefinitions="200,100,120,165,120,120">
+            <Grid RowDefinitions="*" ColumnDefinitions="200,100,120,165,120,80,80">
                 <Label Grid.Row="0" Grid.Column="0" Text="Name" />
                 <Label Grid.Row="0" Grid.Column="1" Text="Num Players" />
                 <Label Grid.Row="0" Grid.Column="2" Text="Map or Buttons" />
                 <Label Grid.Row="0" Grid.Column="3" Text="Created" HorizontalTextAlignment="Center" />
-                <Label Grid.Row="0" Grid.Column="4" Grid.ColumnSpan="2" Text="Controlls" HorizontalOptions="Center" />
+                <Label Grid.Row="0" Grid.Column="4" Grid.ColumnSpan="3" Text="Controlls" HorizontalOptions="Center" />
             </Grid>
             <CollectionView ItemsSource="{Binding Servers}">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-                        <Grid RowDefinitions="*" ColumnDefinitions="200,100,120,165,120,120">
+                        <Grid RowDefinitions="*" ColumnDefinitions="200,100,120,165,120,80,80">
                             <Label Grid.Row="0" Grid.Column="0" Text="{Binding GameName}" />
                             <Label Grid.Row="0" Grid.Column="1" Text="{Binding NumberOfPlayers}" HorizontalTextAlignment="Center" />
                             <Label Grid.Row="0" Grid.Column="2" Text="{Binding MapOrButton}" HorizontalTextAlignment="Center" />
                             <Label Grid.Row="0" Grid.Column="3" Text="{Binding Created}" />
                             <Button Grid.Row="0" Grid.Column="4" Text="Go To" Margin="0,5,5,0" Clicked="GoToServerClicked" />
                             <Button Grid.Row="0" Grid.Column="5" Text="Delete" Margin="0,5,5,0" Clicked="DeleteServerClicked" IsEnabled="{Binding IsMyServer}" />
+                            <Button Grid.Row="0" Grid.Column="6" Text="Edit" Margin="0,5,5,0" Clicked="EditServerClicked" IsEnabled="{Binding IsMyServer}" />
                         </Grid>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>

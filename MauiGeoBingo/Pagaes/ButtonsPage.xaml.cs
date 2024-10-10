@@ -80,7 +80,15 @@ public partial class ButtonsPage : ContentPage, IDisposable
             var url = new Uri(AppSettings.LocalWSBaseEndpoint);
             _client = new WebsocketClient(url);
 
-            _client.MessageReceived.Subscribe(async msg =>
+            _client.MessageReceived.Subscribe(HandleSubscription);
+
+            _client.ReconnectionHappened.Subscribe(async info =>
+            {
+                Debug.WriteLine($"Reconnection happened, type: {info.Type}");
+                await Subscribe();
+            });
+
+            /*_client.MessageReceived.Subscribe(async msg =>
             {
                 var recived = JsonSerializer.Deserialize<ResponseData>(msg.ToString());
                 if (recived != null)
@@ -121,15 +129,62 @@ public partial class ButtonsPage : ContentPage, IDisposable
                     }
 
                 }
-            });
+            });*/
 
             await _client.Start();
+            await Subscribe();
 
-            await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
+        }
+    }
+
+    private async Task Subscribe()
+    {
+        await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
+        {
+            action = "subscribe",
+            topic = "waiting_for_server",
+        })));
+    }
+
+    private async void HandleSubscription(ResponseMessage message)
+    {
+        var recived = JsonSerializer.Deserialize<ResponseData>(message.ToString());
+        if (recived != null)
+        {
+            //Debug.WriteLine($"recived: {recived.IsRunning}");
+            if (recived.Type == "sub_auth")
             {
-                action = "subscribe",
-                topic = "waiting_for_server",
-            })));
+                await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
+                {
+                    action = "publish",
+                    topic = "waiting_for_server",
+                    message = "Give me the player count",
+                    security_key = recived.SecurityKey,
+                    game_id = Server.GameId,
+                })));
+            }
+            else if (recived.Type == "message")
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    int playerNum = recived.PlayerCount;
+                    waitingText.Text = $"Waiting for players to join.\n{playerNum} joined so far";
+
+                    //Debug.WriteLine($"IsRunning: {recived.IsRunning}");
+                    if (recived.IsRunning)
+                    {
+                        waitingBox.IsVisible = false;
+                        for (int row = 0; row < _bingoButtons.GetLength(0); row++)
+                        {
+                            for (int col = 0; col < _bingoButtons.GetLength(1); col++)
+                            {
+                                _bingoButtons[row, col].IsEnabled = true;
+                            }
+                        }
+                        Unsubscribe();
+                    }
+                });
+            }
 
         }
     }

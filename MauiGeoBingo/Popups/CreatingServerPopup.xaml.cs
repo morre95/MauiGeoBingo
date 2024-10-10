@@ -1,15 +1,16 @@
 using CommunityToolkit.Maui.Alerts;
+using CommunityToolkit.Maui.Views;
 using MauiGeoBingo.Classes;
 using System.Security.AccessControl;
 
-namespace MauiGeoBingo.Pagaes;
+namespace MauiGeoBingo.Popups;
 
-public partial class CreateServerPage : ContentPage
+public partial class CreatingServerPopup : Popup
 {
-    public CreateServerPage()
-    {
-        InitializeComponent();
-    }
+	public CreatingServerPopup()
+	{
+		InitializeComponent();
+	}
 
     private void CreateServerPageLoaded(object sender, EventArgs e)
     {
@@ -26,13 +27,15 @@ public partial class CreateServerPage : ContentPage
     {
         if (string.IsNullOrEmpty(gameName.Text))
         {
-            await DisplayAlert("Alert", "You need to put in a name for the game", "OK");
+            //await DisplayAlert("Alert", "You need to put in a name for the game", "OK");
+            await Toast.Make("You need to put in a name for the game").Show();
             return;
         }
 
         if (gameType.SelectedIndex < 0)
         {
-            await DisplayAlert("Alert", "Select if it is a map or a button game", "OK");
+            //await DisplayAlert("Alert", "Select if it is a map or a button game", "OK");
+            await Toast.Make("Select if it is a map or a button game").Show();
             return;
         }
 
@@ -50,18 +53,29 @@ public partial class CreateServerPage : ContentPage
                 is_map = gameType.SelectedIndex,
             });
 
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+
             if (game == null)
             {
-                await DisplayAlert("Alert", "No server created", "OK");
+                //await DisplayAlert("Alert", "No server created", "OK");
+                await Toast.Make("No server created").Show();
+                await CloseAsync(false, cts.Token);
             }
             else
             {
                 await Toast.Make($"You created game: '{gameName.Text}'").Show();
-                var page = Navigation.NavigationStack.LastOrDefault();
+                /*var page = Navigation.NavigationStack.LastOrDefault();
                 await Navigation.PushAsync(new ServerPage());
-                Navigation.RemovePage(page);
+                Navigation.RemovePage(page);*/
+                await CloseAsync(true, cts.Token);
             }
         }
+    }
+
+    private async void CancelClicked(object sender, EventArgs e)
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await CloseAsync(false, cts.Token);
     }
 
     private async void OnEntryCompleted(object? sender, EventArgs e)
@@ -100,9 +114,10 @@ public partial class CreateServerPage : ContentPage
         }
     }
 
-    private async void SetPositionOnMap_Clicked(object sender, EventArgs e)
+    private /*async*/ void SetPositionOnMap_Clicked(object sender, EventArgs e)
     {
-        await Navigation.PushAsync(new MapSettingsPage());
+        //await Navigation.PushAsync(new MapSettingsPage());
+        // TODO: skapa en popup för det här... Eftersom Navigation.PushAsync inte funkar i en popup
     }
 
     private void GameTypeIndexChanged(object sender, EventArgs e)
