@@ -51,6 +51,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
         _bingoButtons = new Button[4, 4];
         gameGrid.Loaded += GridLoaded;
 
+
         Server = server;
     }
 
@@ -88,49 +89,6 @@ public partial class ButtonsPage : ContentPage, IDisposable
                 await Subscribe();
             });
 
-            /*_client.MessageReceived.Subscribe(async msg =>
-            {
-                var recived = JsonSerializer.Deserialize<ResponseData>(msg.ToString());
-                if (recived != null)
-                {
-                    //Debug.WriteLine($"recived: {recived.IsRunning}");
-                    if (recived.Type == "sub_auth")
-                    {
-                        await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
-                        {
-                            action = "publish",
-                            topic = "waiting_for_server",
-                            message = "Give me the player count",
-                            security_key = recived.SecurityKey,
-                            game_id = Server.GameId,
-                        })));
-                    }
-                    else if (recived.Type == "message")
-                    {
-                        MainThread.BeginInvokeOnMainThread(() =>
-                        {
-                            int playerNum = recived.PlayerCount;
-                            waitingText.Text = $"Waiting for players to join.\n{playerNum} joined so far";
-
-                            //Debug.WriteLine($"IsRunning: {recived.IsRunning}");
-                            if (recived.IsRunning)
-                            {
-                                waitingBox.IsVisible = false;
-                                for (int row = 0; row < _bingoButtons.GetLength(0); row++)
-                                {
-                                    for (int col = 0; col < _bingoButtons.GetLength(1); col++)
-                                    {
-                                        _bingoButtons[row, col].IsEnabled = true;
-                                    }
-                                }
-                                Unsubscribe();
-                            }
-                        });
-                    }
-
-                }
-            });*/
-
             await _client.Start();
             await Subscribe();
 
@@ -165,10 +123,29 @@ public partial class ButtonsPage : ContentPage, IDisposable
             }
             else if (recived.Type == "message")
             {
-                MainThread.BeginInvokeOnMainThread(() =>
+                MainThread.BeginInvokeOnMainThread(async () =>
                 {
                     int playerNum = recived.PlayerCount;
                     waitingText.Text = $"Waiting for players to join.\n{playerNum} joined so far";
+
+                    List<Button> buttons = [player2Button, player3Button, player4Button];
+
+                    List<int> playerIds = recived.PlayerIds.Take(4).ToList();
+
+                    playerIds.Remove(AppSettings.PlayerId);
+                    player1Button.Text = AppSettings.PlayerName;
+
+                    for (int i = 0; i < playerIds.Count; i++) 
+                    {
+                        Button button = buttons[i];
+                        if (!button.IsVisible)
+                        {
+                            button.IsVisible = true;
+                            string name = await GetNameAsync(playerIds[i]);
+                            //Debug.WriteLine($"Name: {name}, ID: {playerIds[i]}");
+                            button.Text = name;
+                        }
+                    }
 
                     //Debug.WriteLine($"IsRunning: {recived.IsRunning}");
                     if (recived.IsRunning)
@@ -418,10 +395,10 @@ public partial class ButtonsPage : ContentPage, IDisposable
         }
     }
 
-    private async Task<string> GetNameAsync(int? winner)
+    private async Task<string> GetNameAsync(int? playerId)
     {
         string endpoint = AppSettings.LocalBaseEndpoint;
-        HttpRequest rec = new($"{endpoint}/player/name?player_id={winner}");
+        HttpRequest rec = new($"{endpoint}/player/name?player_id={playerId}");
 
         var result = await rec.GetAsync<ResponseData>();
 
@@ -467,7 +444,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
         public string? SecurityKey { get; set; }
 
         [JsonPropertyName("player_ids")]
-        public int[]? PlayerIds { get; set; }
+        public List<int> PlayerIds { get; set; } = new();
 
         [JsonPropertyName("is_running")]
         public bool IsRunning { get; set; }

@@ -1,18 +1,24 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ui="clr-namespace:MauiGeoBingo.Pagaes"
              x:Class="MauiGeoBingo.Pagaes.ButtonsPage">
     <ContentPage.Resources>
         <Style TargetType="Button">
             <!-- <Setter Property="BackgroundColor" Value="White" /> -->
             <Setter Property="Padding" Value="5" />
             <Setter Property="Margin" Value="5" />
-            <Setter Property="HeightRequest" Value="50" />
+            <Setter Property="HeightRequest" Value="45" />
 
             <Setter Property="VisualStateManager.VisualStateGroups">
                 <VisualStateGroupList>
                     <VisualStateGroup x:Name="CommonStates">
-                        <VisualState x:Name="Normal" />
+                        <VisualState x:Name="Normal">
+                            <VisualState.Setters>
+                                <Setter Property="BackgroundColor" Value="LightGray" />
+                                <Setter Property="TextColor" Value="Black" />
+                            </VisualState.Setters>
+                        </VisualState>
                         <VisualState x:Name="Disabled" />
                         <VisualState x:Name="Pressed">
                             <!-- define your custom 'pressed' styles here -->
@@ -25,34 +31,24 @@
                 </VisualStateGroupList>
             </Setter>
         </Style>
+        <Style TargetType="{x:Type ui:QuizButton}">
+            <Setter Property="BackgroundColor" Value="LightGray" />
+            <Setter Property="TextColor" Value="Black" />
+            <Setter Property="Padding" Value="5" />
+            <Setter Property="Margin" Value="5" />
+            <Setter Property="HeightRequest" Value="55" />
+        </Style>
     </ContentPage.Resources>
     <ScrollView>
         <VerticalStackLayout Padding="30,0" Spacing="25">
-            <Grid x:Name="gameGrid">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
+            <Grid RowDefinitions="*" ColumnDefinitions="*,*,*,*">
+                <Button Text="You" x:Name="player1Button" Grid.Column="0" />
+                <Button Text="Player 2" x:Name="player2Button" Grid.Column="1" BackgroundColor="Blue" IsVisible="False" />
+                <Button Text="Player 3" x:Name="player3Button" Grid.Column="2" BackgroundColor="Red" IsVisible="False" />
+                <Button Text="Player 4" x:Name="player4Button" Grid.Column="3" BackgroundColor="Yellow" IsVisible="False" />
             </Grid>
-            <Grid x:Name="questionGrid">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-            </Grid>
+            <Grid x:Name="gameGrid" RowDefinitions="*,*,*,*" ColumnDefinitions="*,*,*,*"></Grid>
+            <Grid x:Name="questionGrid" RowDefinitions="*,*,*" ColumnDefinitions="*,*"></Grid>
             
             <Border x:Name="waitingBox" BackgroundColor="White" Stroke="Transparent" WidthRequest="250" HorizontalOptions="Center" Padding="5" IsVisible="False">
                 <Border.StrokeShape>

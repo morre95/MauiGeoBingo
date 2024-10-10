@@ -27,7 +27,7 @@ public class Server
     public int? NumberOfPlayers { get; set; }
     
     [JsonPropertyName("player_ids")]
-    public int[]? PlayerIds { get; set; }
+    public List<int>? PlayerIds { get; set; }
 
     [JsonPropertyName("message")]
     public string? Message { get; set; }

@@ -1,4 +1,5 @@
 ﻿using MauiGeoBingo.Classes;
+using Microsoft.Maui.Controls;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -18,6 +19,7 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable, IEquatable<S
     private bool _isMyServer;
     private DateTime? _created;
     private bool _isMeAllowedToPlay;
+    private List<int>? _playerIds;
 
     public string? GameName
     {
@@ -104,6 +106,21 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable, IEquatable<S
             if (_isMeAllowedToPlay != value)
             {
                 _isMeAllowedToPlay = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    
+
+    public List<int>? PlayerIds
+    {
+        get => _playerIds;
+        set
+        {
+            if (_playerIds != value)
+            {
+                _playerIds = value;
                 OnPropertyChanged();
             }
         }
@@ -203,6 +220,7 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable, IEquatable<S
                                     GameId = server.GameId,
                                     IsMyServer = server.IsMyServer,
                                     _isMap = server.IsMap,
+                                    PlayerIds = server.PlayerIds,
                                 };
                                 int index = Servers.IndexOf(viewServer);
                                 serverToAddDict.Add(index, serverToInsert);
@@ -258,6 +276,7 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable, IEquatable<S
                 GameId = server.GameId,
                 IsMyServer = server.IsMyServer,
                 _isMap = server.IsMap,
+                PlayerIds = server.PlayerIds,
             });
         });
     }
@@ -298,6 +317,7 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable, IEquatable<S
                NumberOfPlayers.Equals(other.NumberOfPlayers) &&
                GameId.Equals(other.GameId) &&
                IsMyServer.Equals(other.IsMyServer) &&
-               _isMap.Equals(other.IsMap);
+               _isMap.Equals(other.IsMap) /*&&
+               PlayerIds.Equals(other.PlayerIds)*/;
     }
 }
