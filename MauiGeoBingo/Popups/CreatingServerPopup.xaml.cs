@@ -20,7 +20,7 @@ public partial class CreatingServerPopup : Popup
         latidudeDiff.Text = AppSettings.LatitudeMarkerDiff.ToString();
         longitudeDiff.Text = AppSettings.LongitudeMarkerDiff.ToString();
 
-        numberOfPlayers.SelectedIndex = 1;
+        gameType.SelectedIndex = 0;
     }
 
     private async void NewGameClicked(object sender, EventArgs e)
@@ -128,11 +128,15 @@ public partial class CreatingServerPopup : Popup
             {
                 mapLatLonSettings.IsVisible = false;
                 mapMarkerSettings.IsVisible = false;
+
+                Grid.SetRow(buttonsStack, 2);
             }
             else
             {
                 mapLatLonSettings.IsVisible = true;
                 mapMarkerSettings.IsVisible = true;
+
+                Grid.SetRow(buttonsStack, 3);
             }
         }
     }

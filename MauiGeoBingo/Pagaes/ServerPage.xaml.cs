@@ -8,6 +8,7 @@ namespace MauiGeoBingo.Pagaes;
 
 public partial class ServerPage : ContentPage
 {
+
     private ServerViewModel _serverViewModel;
 
     public ServerPage()
@@ -82,6 +83,20 @@ public partial class ServerPage : ContentPage
         }
     }
 
+    private async void ServerPageLoaded(object sender, EventArgs e)
+    {
+        /*Task task = Task.Run(() =>
+        {
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                activityIndicator.IsVisible = true;
+                await Task.Delay(5000);
+                activityIndicator.IsVisible = false;
+            });
+        });
+        await task;*/
+    }
+
     private void ServerPageUnloaded(object sender, EventArgs e)
     {
         _serverViewModel.Dispose();
@@ -97,7 +112,7 @@ public partial class ServerPage : ContentPage
 
             if (result is ServerViewModel resultServer)
             {
-                await Toast.Make($"Servern #{resultServer.GameId}:{resultServer.GameName} är sparad").Show();
+                await Toast.Make($"Servern {resultServer.GameName} är sparad").Show();
                 string endpoint = AppSettings.LocalBaseEndpoint;
                 HttpRequest rec = new($"{endpoint}/edit/game/name");
 
@@ -114,4 +129,6 @@ public partial class ServerPage : ContentPage
             }
         }
     }
+
+    
 }

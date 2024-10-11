@@ -92,6 +92,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
             await _client.Start();
             await Subscribe();
 
+            UpdateGameSatusAll();
         }
     }
 
@@ -173,6 +174,62 @@ public partial class ButtonsPage : ContentPage, IDisposable
             for (int col = 0; col < _bingoButtons.GetLength(1); col++)
             {
                 _bingoButtons[row, col].IsEnabled = false;
+            }
+        }
+    }
+
+    /*private async void UpdateGameSatus(int? playerId = null)
+    {
+        if (Server == null) return;
+
+        string endpoint = AppSettings.LocalBaseEndpoint;
+        if (playerId == null) playerId = AppSettings.PlayerId;
+        HttpRequest rec = new($"{endpoint}/get/game/status/{playerId}/{Server.GameId}");
+        //HttpRequest rec = new($"{endpoint}/get/game/status/1/1");
+
+        var response = await rec.GetAsync<GameStatusRootobject>();
+
+        if (response != null && response.Success)
+        {
+            for (int row = 0; row < _bingoButtons.GetLength(0); row++)
+            {
+                for (int col = 0; col < _bingoButtons.GetLength(1); col++)
+                {
+                    int number = response.Get(row, col);
+                    _bingoButtons[row, col].Text = number.ToString();
+
+                    SetButtonColor(_bingoButtons[row, col], number);
+                }
+            }
+        }
+    }*/
+
+    private async void UpdateGameSatusAll(int? playerId = null)
+    {
+        if (Server == null) return;
+
+        string endpoint = AppSettings.LocalBaseEndpoint;
+        string url;
+        if (playerId != null) url = $"{endpoint}/get/game/status/{playerId}/{Server.GameId}";
+        else if (Server.PlayerIds != null) url = $"{endpoint}/get/game/status/all/{string.Join(",", Server.PlayerIds)}/{Server.GameId}";
+        else return;
+
+        HttpRequest rec = new(url);
+        //HttpRequest rec = new($"{endpoint}/get/game/status/1/1");
+
+        var response = await rec.GetAsync<GameStatusRootobject>();
+
+        if (response != null && response.Success)
+        {
+            for (int row = 0; row < _bingoButtons.GetLength(0); row++)
+            {
+                for (int col = 0; col < _bingoButtons.GetLength(1); col++)
+                {
+                    int number = response.Get(row, col);
+                    _bingoButtons[row, col].Text = number.ToString();
+
+                    SetButtonColor(_bingoButtons[row, col], number);
+                }
             }
         }
     }
@@ -335,23 +392,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
                 {
                     if (ActiveBingoButton.Value.Key == text) number++;
                     else number--;
-
-                    activeBtn.Text = number.ToString();
-                    if (number > 0)
-                    {
-                        activeBtn.BackgroundColor = _winningColor;
-                        activeBtn.TextColor = Colors.Black;
-                    }
-                    else if (number == 0)
-                    {
-                        activeBtn.BackgroundColor = null;
-                    }
-                    else
-                    {
-                        activeBtn.BackgroundColor = Colors.Red;
-                        activeBtn.TextColor = Colors.White;
-                    }
-
+                    SetButtonColor(activeBtn, number);
 
                     if (CheckIfBingo())
                     {
@@ -361,7 +402,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
 
                         await SendStatusUpdateAsync(row, col, number, true);
 
-                        if (Server != null) 
+                        if (Server != null)
                         {
                             await SendStatusUpdateAsync(row, col, number, true);
                         }
@@ -392,6 +433,25 @@ public partial class ButtonsPage : ContentPage, IDisposable
             }
 
             ActiveBingoButton = null;
+        }
+    }
+
+    private void SetButtonColor(Button button, int number)
+    {
+        button.Text = number.ToString();
+        if (number > 0)
+        {
+            button.BackgroundColor = _winningColor;
+            button.TextColor = Colors.Black;
+        }
+        else if (number == 0)
+        {
+            button.BackgroundColor = null;
+        }
+        else
+        {
+            button.BackgroundColor = Colors.Red;
+            button.TextColor = Colors.White;
         }
     }
 
@@ -551,6 +611,58 @@ public partial class ButtonsPage : ContentPage, IDisposable
 public class QuizButton : Button
 {
     public Result? QUestionAndAnswer { get; set; } = null;
+}
+
+
+public class GameStatusRootobject
+{
+    [JsonPropertyName("success")]
+    public bool Success { get; set; }
+
+    [JsonPropertyName("game_status")]
+    public List<GameStatus> GameStatus { get; set; }
+
+    public int Get(int row, int col)
+    {
+        int result = 0;
+        foreach (GameStatus gs in GameStatus)
+        {
+            if (gs.Col == col && gs.Row == row)
+            {
+                result = gs.Number;
+                break;
+            }
+        }
+        return result;
+    }
+}
+
+public class GameStatus
+{
+    [JsonPropertyName("game_name")]
+    public string GameName { get; set; }
+
+    [JsonPropertyName("grid_col")]
+    public int Col { get; set; }
+
+    [JsonPropertyName("grid_row")]
+    public int Row { get; set; }
+
+    public int is_active { get; set; }
+
+    public bool IsActive { get { return Convert.ToBoolean(is_active); } set { is_active = Convert.ToInt32(value); } }
+
+    public int is_map { get; set; }
+    public bool IsMap { get { return Convert.ToBoolean(is_map); } set { is_map = Convert.ToInt32(value); } }
+
+    [JsonPropertyName("num")]
+    public int Number { get; set; }
+
+    [JsonPropertyName("player_name")]
+    public string PlayerName { get; set; }
+
+    [JsonPropertyName("player_id")]
+    public int GameId { get; set; }
 }
 
 

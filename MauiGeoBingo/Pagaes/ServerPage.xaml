@@ -2,7 +2,8 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="MauiGeoBingo.Pagaes.ServerPage"
-             Unloaded="ServerPageUnloaded">
+             Unloaded="ServerPageUnloaded"
+             Loaded="ServerPageLoaded">
 
     <ContentPage.Resources>
         <Style TargetType="Button">
@@ -30,9 +31,9 @@
     </ContentPage.Resources>
 
     <ScrollView Orientation="Both" VerticalScrollBarVisibility="Always" VerticalOptions="FillAndExpand" HorizontalScrollBarVisibility="Always" HorizontalOptions="FillAndExpand">
-        <StackLayout Padding="10,15,10,0">
+        <StackLayout Padding="15,15,10,0">
             <Label Text="Active Server List" FontSize="Medium" FontAttributes="Bold" />
-
+            
             <Grid RowDefinitions="*,5" ColumnDefinitions="200,100,120,165,120,80,80">
                 <Label Grid.Row="0" Grid.Column="0" Text="Name" />
                 <Label Grid.Row="0" Grid.Column="1" Text="Num Players" />
@@ -41,6 +42,7 @@
                 <Label Grid.Row="0" Grid.Column="4" Grid.ColumnSpan="4" Text="Controlls" HorizontalOptions="Center" />
                 <BoxView Grid.Row="1" Grid.ColumnSpan="7" Color="Gray" HeightRequest="2" HorizontalOptions="Fill" />
             </Grid>
+            <ActivityIndicator x:Name="activityIndicator" IsVisible="Collapse" IsRunning="true" Color="Orange" HorizontalOptions="Start" />
             <CollectionView ItemsSource="{Binding Servers}">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
