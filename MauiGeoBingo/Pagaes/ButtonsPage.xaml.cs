@@ -4,8 +4,7 @@ using CommunityToolkit.Maui.Views;
 using MauiGeoBingo.Classes;
 using MauiGeoBingo.Extensions;
 using Microsoft.Maui.Graphics;
-using Mopups.PreBaked.PopupPages.Loader;
-using Mopups.PreBaked.Services;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Net.WebSockets;
@@ -37,6 +36,18 @@ public partial class ButtonsPage : ContentPage, IDisposable
 
         _bingoButtons = new Button[4, 4];
         gameGrid.Loaded += GridLoaded;
+
+        Server = null;
+
+
+
+
+        Server = new();
+        Server.GameId = 1;
+        Server.PlayerIds = new();
+        Server.PlayerIds.Add(1);
+        Server.PlayerIds.Add(2);
+        UpdateAllGameSatus();
 
         Server = null;
     }
@@ -92,7 +103,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
             await _client.Start();
             await Subscribe();
 
-            UpdateGameSatusAll();
+            UpdateMyGameSatus();
         }
     }
 
@@ -136,7 +147,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
                     playerIds.Remove(AppSettings.PlayerId);
                     player1Button.Text = AppSettings.PlayerName;
 
-                    for (int i = 0; i < playerIds.Count; i++) 
+                    for (int i = 0; i < playerIds.Count; i++)
                     {
                         Button button = buttons[i];
                         if (!button.IsVisible)
@@ -178,13 +189,12 @@ public partial class ButtonsPage : ContentPage, IDisposable
         }
     }
 
-    /*private async void UpdateGameSatus(int? playerId = null)
+    private async void UpdateMyGameSatus()
     {
         if (Server == null) return;
 
         string endpoint = AppSettings.LocalBaseEndpoint;
-        if (playerId == null) playerId = AppSettings.PlayerId;
-        HttpRequest rec = new($"{endpoint}/get/game/status/{playerId}/{Server.GameId}");
+        HttpRequest rec = new($"{endpoint}/get/game/status/{AppSettings.PlayerId}/{Server.GameId}");
         //HttpRequest rec = new($"{endpoint}/get/game/status/1/1");
 
         var response = await rec.GetAsync<GameStatusRootobject>();
@@ -202,33 +212,53 @@ public partial class ButtonsPage : ContentPage, IDisposable
                 }
             }
         }
-    }*/
+    }
 
-    private async void UpdateGameSatusAll(int? playerId = null)
+    private async void UpdateAllGameSatus()
     {
         if (Server == null) return;
 
         string endpoint = AppSettings.LocalBaseEndpoint;
         string url;
-        if (playerId != null) url = $"{endpoint}/get/game/status/{playerId}/{Server.GameId}";
-        else if (Server.PlayerIds != null) url = $"{endpoint}/get/game/status/all/{string.Join(",", Server.PlayerIds)}/{Server.GameId}";
+        if (Server.PlayerIds != null) url = $"{endpoint}/get/game/status/all/{string.Join(",", Server.PlayerIds)}/{Server.GameId}";
         else return;
 
         HttpRequest rec = new(url);
-        //HttpRequest rec = new($"{endpoint}/get/game/status/1/1");
 
         var response = await rec.GetAsync<GameStatusRootobject>();
 
         if (response != null && response.Success)
         {
-            for (int row = 0; row < _bingoButtons.GetLength(0); row++)
+            int userId = AppSettings.PlayerId;
+            int i = 0;
+            int[,] currentUserNums = new int[4, 4];
+            bool[,] currentUserHighs = new bool[4, 4];
+            for (int row = 0; row < 4/*_bingoButtons.GetLength(0)*/; row++)
             {
-                for (int col = 0; col < _bingoButtons.GetLength(1); col++)
+                for (int col = 0; col < 4/*_bingoButtons.GetLength(1)*/; col++)
                 {
-                    int number = response.Get(row, col);
-                    _bingoButtons[row, col].Text = number.ToString();
+                    int currentPId = Server.PlayerIds[i++];
+                    if (i % 4 == Server.PlayerIds.Count) i = 0;
 
-                    SetButtonColor(_bingoButtons[row, col], number);
+                    int number = response.GetAll(currentPId, row, col);
+                    if (userId == currentPId) currentUserNums[row, col] = number;
+
+                    if (number >= currentUserNums[row, col])
+                    {
+                        currentUserHighs[row, col] = false;
+                    }
+                    else
+                    {
+                        currentUserHighs[row, col] = true;
+                    }
+                    
+
+                    // TODO: Uppdatera respektive fält här och se om det blir rätt
+
+                    //Debug.WriteLine($"{row},{col} = {number}");
+                    //_bingoButtons[row, col].Text = number.ToString();
+
+                    //SetButtonColor(_bingoButtons[row, col], number);
                 }
             }
         }
@@ -273,8 +303,8 @@ public partial class ButtonsPage : ContentPage, IDisposable
         Quiz? quiz = null;
         string fileName = AppSettings.QuizJsonFileName;
         if (await FileSystem.Current.AppPackageFileExistsAsync(fileName))
-        { 
-            quiz = await Helpers.ReadJsonFile<Quiz>(fileName); 
+        {
+            quiz = await Helpers.ReadJsonFile<Quiz>(fileName);
         }
 
         if (quiz != null && quiz.Results != null)
@@ -319,18 +349,19 @@ public partial class ButtonsPage : ContentPage, IDisposable
         {
             await DisplayAlert("Alert", "Could not find any questions for you", "OK");
         }
-   
+
     }
 
     private void QuestionBtn_Clicked(object? sender, EventArgs e)
     {
         if (ActiveBingoButton != null) return;
-        
+
 
         if (sender is QuizButton questionBtn)
         {
             Result? result = questionBtn.QUestionAndAnswer;
-            if (result != null) {
+            if (result != null)
+            {
                 Label label = new()
                 {
                     Text = result.Question,
@@ -511,7 +542,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
 
         [JsonPropertyName("winner")]
         public int? Winner { get; set; }
-        
+
         [JsonPropertyName("player_name")]
         public string? PlayerName { get; set; }
     }
@@ -620,7 +651,11 @@ public class GameStatusRootobject
     public bool Success { get; set; }
 
     [JsonPropertyName("game_status")]
-    public List<GameStatus> GameStatus { get; set; }
+    public List<GameStatus> GameStatus { get; set; } = new();
+
+    [JsonPropertyName("all_game_status")]
+    [JsonConverter(typeof(AllGameStatusConverter))]
+    public Dictionary<int, List<GameStatus>> AllGameStatus { get; set; } = new();
 
     public int Get(int row, int col)
     {
@@ -634,6 +669,58 @@ public class GameStatusRootobject
             }
         }
         return result;
+    }
+
+    public int GetAll(int playerId, int row, int col)
+    {
+        int result = 0;
+
+        if (AllGameStatus.TryGetValue(playerId, out List<GameStatus>? gsList))
+        {
+            if (gsList != null)
+            foreach (GameStatus gs in gsList)
+            {
+                if (gs.Col == col && gs.Row == row)
+                {
+                    result = gs.Number;
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
+    public void SetHighest()
+    {
+        var highestScores = new Dictionary<(int Row, int Col), (int Number, GameStatus Status)>();
+
+        foreach (var statusKvp in AllGameStatus)
+        {
+            List<GameStatus> statuses = statusKvp.Value;
+            foreach (var status in statuses)
+            {
+                var gridPosition = (status.Row, status.Col);
+
+                // Kontrollera om denna ruta redan har en högre poäng
+                if (highestScores.ContainsKey(gridPosition))
+                {
+                    // Jämför den aktuella poängen med den som redan finns i dictionaryn
+                    if (status.Number > highestScores[gridPosition].Number)
+                    {
+                        // Uppdatera högsta poängen och sätt IsHighestScore till false för tidigare vinnare
+                        highestScores[gridPosition].Status.IsHighestNumber = false;
+                        highestScores[gridPosition] = (status.Number, status);
+                        status.IsHighestNumber = true;
+                    }
+                }
+                else
+                {
+                    // Om det är första gången vi ser denna grid position, lägg till den
+                    highestScores[gridPosition] = (status.Number, status);
+                    status.IsHighestNumber = true;
+                }
+            }
+        }
     }
 }
 
@@ -649,7 +736,6 @@ public class GameStatus
     public int Row { get; set; }
 
     public int is_active { get; set; }
-
     public bool IsActive { get { return Convert.ToBoolean(is_active); } set { is_active = Convert.ToInt32(value); } }
 
     public int is_map { get; set; }
@@ -658,11 +744,61 @@ public class GameStatus
     [JsonPropertyName("num")]
     public int Number { get; set; }
 
+    public int is_highest_number { get; set; }
+    public bool IsHighestNumber { get { return Convert.ToBoolean(is_highest_number); } set { is_highest_number = Convert.ToInt32(value); } }
+
     [JsonPropertyName("player_name")]
     public string PlayerName { get; set; }
 
     [JsonPropertyName("player_id")]
-    public int GameId { get; set; }
+    public int PlayerId { get; set; }
+}
+
+
+
+public class AllGameStatusConverter : JsonConverter<Dictionary<int, List<GameStatus>>>
+{
+    public override Dictionary<int, List<GameStatus>> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        var dictionary = new Dictionary<int, List<GameStatus>>();
+
+        // Eftersom `all_game_status` är en array, måste vi börja med att läsa in arrayen
+        if (reader.TokenType != JsonTokenType.StartArray)
+            throw new JsonException();
+
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.EndArray)
+                break;
+
+            // Nu börjar varje spel-ID objekt (exempelvis "1" eller "2")
+            if (reader.TokenType != JsonTokenType.StartObject)
+                throw new JsonException();
+
+            reader.Read(); // Läser nyckeln (spel-ID)
+            if (reader.TokenType != JsonTokenType.PropertyName)
+                throw new JsonException();
+
+            // Hämta spel-ID som är en sträng och konvertera till int
+            string keyString = reader.GetString();
+            int key = int.Parse(keyString);
+
+            reader.Read(); // Gå vidare till värdet (listan med GameStatus)
+
+            var gameStatusList = JsonSerializer.Deserialize<List<GameStatus>>(ref reader, options);
+
+            dictionary.Add(key, gameStatusList);
+
+            reader.Read(); // Slut på objektet
+        }
+
+        return dictionary;
+    }
+
+    public override void Write(Utf8JsonWriter writer, Dictionary<int, List<GameStatus>> value, JsonSerializerOptions options)
+    {
+        throw new NotImplementedException("Writing is not implemented for this converter");
+    }
 }
 
 

@@ -22,7 +22,13 @@ internal class HttpRequest : IDisposable
         if (response.StatusCode == HttpStatusCode.OK)
         {
             var jsonResponse = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<T>(jsonResponse);
+
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+            };
+
+            return JsonSerializer.Deserialize<T>(jsonResponse, options);
         }
         return default;
     }

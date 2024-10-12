@@ -1,7 +1,6 @@
 ﻿using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Maps;
 using Microsoft.Extensions.Logging;
-using Mopups.Hosting;
 
 namespace MauiGeoBingo
 {
@@ -22,8 +21,7 @@ namespace MauiGeoBingo
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 })
-                .UseMauiCommunityToolkit()
-                .ConfigureMopups();
+                .UseMauiCommunityToolkit();
 
 #if DEBUG
     		builder.Logging.AddDebug();
