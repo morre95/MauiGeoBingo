@@ -38,18 +38,6 @@ public partial class ButtonsPage : ContentPage, IDisposable
         gameGrid.Loaded += GridLoaded;
 
         Server = null;
-
-
-
-
-        Server = new();
-        Server.GameId = 1;
-        Server.PlayerIds = new();
-        Server.PlayerIds.Add(1);
-        Server.PlayerIds.Add(2);
-        UpdateAllGameSatus();
-
-        Server = null;
     }
 
     public ButtonsPage(ServerViewModel server)
@@ -68,9 +56,26 @@ public partial class ButtonsPage : ContentPage, IDisposable
 
     private async void GridLoaded(object? sender, EventArgs e)
     {
+        player1Button.Text = AppSettings.PlayerName;
+
         await Task.Delay(500);
 
         CreateButtons();
+
+        /* TODO: Ta bort efter testning */
+        await Task.Delay(500);
+
+        Server = new();
+        Server.GameId = 1;
+        Server.PlayerIds = new();
+        Server.PlayerIds.Add(1);
+        Server.PlayerIds.Add(2);
+        UpdateAllGameSatus();
+
+        Server = null;
+        /* Slut på borttagning */
+
+
 
         if (Server != null && await AddPlayerToGame())
         {
@@ -223,42 +228,35 @@ public partial class ButtonsPage : ContentPage, IDisposable
         if (Server.PlayerIds != null) url = $"{endpoint}/get/game/status/all/{string.Join(",", Server.PlayerIds)}/{Server.GameId}";
         else return;
 
+        Debug.WriteLine(url);
+
         HttpRequest rec = new(url);
 
         var response = await rec.GetAsync<GameStatusRootobject>();
-
         if (response != null && response.Success)
         {
             int userId = AppSettings.PlayerId;
+            //int userId = 1;
             int i = 0;
-            int[,] currentUserNums = new int[4, 4];
-            bool[,] currentUserHighs = new bool[4, 4];
             for (int row = 0; row < 4/*_bingoButtons.GetLength(0)*/; row++)
             {
                 for (int col = 0; col < 4/*_bingoButtons.GetLength(1)*/; col++)
                 {
-                    int currentPId = Server.PlayerIds[i++];
-                    if (i % 4 == Server.PlayerIds.Count) i = 0;
-
-                    int number = response.GetAll(currentPId, row, col);
-                    if (userId == currentPId) currentUserNums[row, col] = number;
-
-                    if (number >= currentUserNums[row, col])
+                    // TODO: kombinera dessa två funktioner för att spara resurser
+                    int number = response.GetFromAll(userId, row, col);
+                    bool isHighest = response.IsHighest(userId, row, col);
+                    
+                    // TODO: bör komma på något bättre sätt att visa vem som äger knappen
+                    _bingoButtons[row, col].Text = number.ToString();
+                    if (isHighest)
                     {
-                        currentUserHighs[row, col] = false;
+                        SetButtonColor(_bingoButtons[row, col], number);
                     }
                     else
                     {
-                        currentUserHighs[row, col] = true;
+                        SetButtonColor(_bingoButtons[row, col], 0);
                     }
-                    
 
-                    // TODO: Uppdatera respektive fält här och se om det blir rätt
-
-                    //Debug.WriteLine($"{row},{col} = {number}");
-                    //_bingoButtons[row, col].Text = number.ToString();
-
-                    //SetButtonColor(_bingoButtons[row, col], number);
                 }
             }
         }
@@ -423,6 +421,9 @@ public partial class ButtonsPage : ContentPage, IDisposable
                 {
                     if (ActiveBingoButton.Value.Key == text) number++;
                     else number--;
+
+                    activeBtn.Text = number.ToString();
+
                     SetButtonColor(activeBtn, number);
 
                     if (CheckIfBingo())
@@ -469,7 +470,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
 
     private void SetButtonColor(Button button, int number)
     {
-        button.Text = number.ToString();
+        
         if (number > 0)
         {
             button.BackgroundColor = _winningColor;
@@ -671,56 +672,53 @@ public class GameStatusRootobject
         return result;
     }
 
-    public int GetAll(int playerId, int row, int col)
+    public int GetFromAll(int playerId, int row, int col)
     {
         int result = 0;
-
+        Debug.WriteLine($"id:{playerId}, Är denna sann: " + AllGameStatus.TryGetValue(playerId, out List<GameStatus>? test));
         if (AllGameStatus.TryGetValue(playerId, out List<GameStatus>? gsList))
         {
+            
             if (gsList != null)
-            foreach (GameStatus gs in gsList)
             {
-                if (gs.Col == col && gs.Row == row)
+                Debug.WriteLine($"Jo det finns något här för id: {playerId}");
+                foreach (GameStatus gs in gsList)
                 {
-                    result = gs.Number;
-                    break;
+                    if (gs.Col == col && gs.Row == row)
+                    {
+                        result = gs.Number;
+                        break;
+                    }
                 }
             }
+            else
+            {
+                Debug.WriteLine($"player id: {playerId} hittas alltså inte");
+            }
+            
         }
         return result;
     }
 
-    public void SetHighest()
+    public bool IsHighest(int playerId, int row, int col)
     {
-        var highestScores = new Dictionary<(int Row, int Col), (int Number, GameStatus Status)>();
+        bool result = false;
 
-        foreach (var statusKvp in AllGameStatus)
+        if (AllGameStatus.TryGetValue(playerId, out List<GameStatus>? gsList))
         {
-            List<GameStatus> statuses = statusKvp.Value;
-            foreach (var status in statuses)
+            if (gsList != null)
             {
-                var gridPosition = (status.Row, status.Col);
-
-                // Kontrollera om denna ruta redan har en högre poäng
-                if (highestScores.ContainsKey(gridPosition))
+                foreach (GameStatus gs in gsList)
                 {
-                    // Jämför den aktuella poängen med den som redan finns i dictionaryn
-                    if (status.Number > highestScores[gridPosition].Number)
+                    if (gs.Col == col && gs.Row == row)
                     {
-                        // Uppdatera högsta poängen och sätt IsHighestScore till false för tidigare vinnare
-                        highestScores[gridPosition].Status.IsHighestNumber = false;
-                        highestScores[gridPosition] = (status.Number, status);
-                        status.IsHighestNumber = true;
+                        result = gs.IsHighestNumber;
+                        break;
                     }
-                }
-                else
-                {
-                    // Om det är första gången vi ser denna grid position, lägg till den
-                    highestScores[gridPosition] = (status.Number, status);
-                    status.IsHighestNumber = true;
                 }
             }
         }
+        return result;
     }
 }
 
