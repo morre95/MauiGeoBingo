@@ -126,6 +126,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
 
     private async void HandleSubscription(ResponseMessage message)
     {
+        // TODO kolla om det är möjligt att skicka med den datan som finns i UpdateAllGameSatus() för att minska api calls
         var recived = JsonSerializer.Deserialize<ResponseData>(message.ToString());
         if (recived != null)
         {
