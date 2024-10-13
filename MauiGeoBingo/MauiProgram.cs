@@ -14,7 +14,7 @@ namespace MauiGeoBingo
 #if ANDROID || IOS
                     .UseMauiMaps()
 #elif WINDOWS
-                    .UseMauiCommunityToolkitMaps("AIzaSyBaj711kXTEo06BLhszQd_42jErf-A9BSs")
+                    .UseMauiCommunityToolkitMaps("")
 #endif
                 .ConfigureFonts(fonts =>
                 {
