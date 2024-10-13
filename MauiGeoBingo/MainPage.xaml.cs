@@ -1,5 +1,6 @@
 ﻿
 using CommunityToolkit.Maui.Alerts;
+using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Storage;
 using CommunityToolkit.Maui.Views;
 using MauiGeoBingo.Classes;
@@ -21,7 +22,8 @@ namespace MauiGeoBingo
 
         private async void MapClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(new MapPage());
+            await Toast.Make("Grattis du vann!!!", ToastDuration.Long).Show();
+            //await Navigation.PushAsync(new MapPage());
         }
 
         private async void ButtonsClicked(object sender, EventArgs e)

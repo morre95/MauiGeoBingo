@@ -1,4 +1,5 @@
 using CommunityToolkit.Maui.Alerts;
+using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Storage;
 using CommunityToolkit.Maui.Views;
 using MauiGeoBingo.Classes;
@@ -52,6 +53,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
 
 
         Server = server;
+
     }
 
     private async void GridLoaded(object? sender, EventArgs e)
@@ -63,7 +65,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
         CreateButtons();
 
         /* TODO: Ta bort efter testning */
-        await Task.Delay(500);
+        /*await Task.Delay(500);
 
         Server = new();
         Server.GameId = 1;
@@ -72,7 +74,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
         Server.PlayerIds.Add(2);
         UpdateAllGameSatus();
 
-        Server = null;
+        Server = null;*/
         /* Slut på borttagning */
 
 
@@ -108,7 +110,8 @@ public partial class ButtonsPage : ContentPage, IDisposable
             await _client.Start();
             await Subscribe();
 
-            UpdateMyGameSatus();
+            //UpdateMyGameSatus();
+            await UpdateAllGameSatus();
         }
     }
 
@@ -165,7 +168,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
                     }
 
                     //Debug.WriteLine($"IsRunning: {recived.IsRunning}");
-                    if (recived.IsRunning)
+                    if (recived.IsRunning && waitingBox.IsVisible)
                     {
                         waitingBox.IsVisible = false;
                         for (int row = 0; row < _bingoButtons.GetLength(0); row++)
@@ -194,7 +197,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
         }
     }
 
-    private async void UpdateMyGameSatus()
+    /*private async void UpdateMyGameSatus()
     {
         if (Server == null) return;
 
@@ -217,9 +220,9 @@ public partial class ButtonsPage : ContentPage, IDisposable
                 }
             }
         }
-    }
+    }*/
 
-    private async void UpdateAllGameSatus()
+    private async Task UpdateAllGameSatus()
     {
         if (Server == null) return;
 
@@ -228,35 +231,33 @@ public partial class ButtonsPage : ContentPage, IDisposable
         if (Server.PlayerIds != null) url = $"{endpoint}/get/game/status/all/{string.Join(",", Server.PlayerIds)}/{Server.GameId}";
         else return;
 
-        Debug.WriteLine(url);
+        //Debug.WriteLine(url);
 
         HttpRequest rec = new(url);
 
         var response = await rec.GetAsync<GameStatusRootobject>();
-        if (response != null && response.Success)
-        {
-            int userId = AppSettings.PlayerId;
-            //int userId = 1;
-            int i = 0;
-            for (int row = 0; row < 4/*_bingoButtons.GetLength(0)*/; row++)
-            {
-                for (int col = 0; col < 4/*_bingoButtons.GetLength(1)*/; col++)
-                {
-                    // TODO: kombinera dessa två funktioner för att spara resurser
-                    int number = response.GetFromAll(userId, row, col);
-                    bool isHighest = response.IsHighest(userId, row, col);
-                    
-                    // TODO: bör komma på något bättre sätt att visa vem som äger knappen
-                    _bingoButtons[row, col].Text = number.ToString();
-                    if (isHighest)
-                    {
-                        SetButtonColor(_bingoButtons[row, col], number);
-                    }
-                    else
-                    {
-                        SetButtonColor(_bingoButtons[row, col], 0);
-                    }
+        if (response == null || !response.Success) return;
 
+        int userId = AppSettings.PlayerId;
+        //int userId = 1;
+        int i = 0;
+        for (int row = 0; row < 4/*_bingoButtons.GetLength(0)*/; row++)
+        {
+            for (int col = 0; col < 4/*_bingoButtons.GetLength(1)*/; col++)
+            {
+                // TODO: kombinera dessa två funktioner för att spara resurser
+                int number = response.GetFromAll(userId, row, col);
+                bool isHighest = response.IsHighest(userId, row, col);
+
+                // TODO: bör komma på något bättre sätt att visa vem som äger knappen
+                _bingoButtons[row, col].Text = number.ToString();
+                if (isHighest)
+                {
+                    SetButtonColor(_bingoButtons[row, col], number);
+                }
+                else
+                {
+                    SetButtonColor(_bingoButtons[row, col], -1);
                 }
             }
         }
@@ -426,41 +427,37 @@ public partial class ButtonsPage : ContentPage, IDisposable
 
                     SetButtonColor(activeBtn, number);
 
-                    if (CheckIfBingo())
+                    
+                    string[] parts = activeBtn.ClassId.Split('-');
+                    int row = int.Parse(parts[0]);
+                    int col = int.Parse(parts[1]);
+                    if (Server != null) 
                     {
-                        string[] parts = activeBtn.ClassId.Split('-');
-                        int row = int.Parse(parts[0]);
-                        int col = int.Parse(parts[1]);
-
-                        await SendStatusUpdateAsync(row, col, number, true);
-
-                        if (Server != null)
-                        {
-                            await SendStatusUpdateAsync(row, col, number, true);
-                        }
-
-                        DisableAllButtons();
-
-                        await Toast.Make("Grattis du vann!!!", CommunityToolkit.Maui.Core.ToastDuration.Long).Show();
-                    }
-                    else
-                    {
-                        string[] parts = activeBtn.ClassId.Split('-');
-                        int row = int.Parse(parts[0]);
-                        int col = int.Parse(parts[1]);
-
-                        int? winner = null;
-                        if (Server != null) winner = await SendStatusUpdateAsync(row, col, number);
+                        int? winner = await SendStatusUpdateAsync(row, col, number);
 
                         if (winner != null)
                         {
                             DisableAllButtons();
 
                             string playerName = await GetNameAsync(winner);
-                            await Toast.Make($"'{playerName}' har vunnit!!!", CommunityToolkit.Maui.Core.ToastDuration.Long).Show();
+                            await Toast.Make($"'{playerName}' har vunnit!!!", ToastDuration.Long).Show();
+                            ActiveBingoButton = null;
+                            return;
                         }
                     }
 
+                    await UpdateAllGameSatus();
+
+                    Debug.WriteLine($"Är jag vinnare? {CheckIfBingo()}");
+
+                    if (CheckIfBingo())
+                    {
+                        Debug.WriteLine("Japp jag vann!!!");
+
+                        DisableAllButtons();
+
+                        await Toast.Make("Grattis du vann!!!", ToastDuration.Long).Show();
+                    }
                 }
             }
 
@@ -503,12 +500,14 @@ public partial class ButtonsPage : ContentPage, IDisposable
 
     private async Task<int?> SendStatusUpdateAsync(int row, int col, int value, bool winningMove = false)
     {
+        if (Server == null) return null;
+
         string endpoint = AppSettings.LocalBaseEndpoint;
         HttpRequest rec = new($"{endpoint}/update/game");
         var result = await rec.PostAsync<ResponseData>(new
         {
             player_id = AppSettings.PlayerId,
-            game_id = AppSettings.CurrentGameId,
+            game_id = Server.GameId,
             grid_row = row,
             grid_col = col,
             num = value,
@@ -675,13 +674,13 @@ public class GameStatusRootobject
     public int GetFromAll(int playerId, int row, int col)
     {
         int result = 0;
-        Debug.WriteLine($"id:{playerId}, Är denna sann: " + AllGameStatus.TryGetValue(playerId, out List<GameStatus>? test));
+        //Debug.WriteLine($"id:{playerId}, Är denna sann: " + AllGameStatus.TryGetValue(playerId, out List<GameStatus>? test));
         if (AllGameStatus.TryGetValue(playerId, out List<GameStatus>? gsList))
         {
             
             if (gsList != null)
             {
-                Debug.WriteLine($"Jo det finns något här för id: {playerId}");
+                //Debug.WriteLine($"Jo det finns något här för id: {playerId}");
                 foreach (GameStatus gs in gsList)
                 {
                     if (gs.Col == col && gs.Row == row)
