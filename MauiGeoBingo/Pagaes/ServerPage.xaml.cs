@@ -41,6 +41,7 @@ public partial class ServerPage : ContentPage
                 btn.IsEnabled = false;
                 btn.Text = "Deleting...";
 
+                // TBD: Behövs detta, med att ladda om sidan???
                 server.Dispose();
 
                 await Task.Delay(500);
@@ -52,16 +53,20 @@ public partial class ServerPage : ContentPage
         }
     }
 
-    private async void GoToServerClicked(object sender, EventArgs e)
+    private void GoToServerClicked(object sender, EventArgs e)
     {
         if (sender is Button btn && btn.BindingContext is ServerViewModel server)
         {
             Debug.WriteLine($"Go to server: {server.GameName} with id: {server.GameId}");
 
-            var page = Navigation.NavigationStack.LastOrDefault();
-            await Navigation.PushAsync(new ButtonsPage(server));
-            Navigation.RemovePage(page);
-            _serverViewModel.Dispose();
+
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                var page = Navigation.NavigationStack.LastOrDefault();
+                await Navigation.PushAsync(new ButtonsPage(server));
+                Navigation.RemovePage(page);
+                _serverViewModel.Dispose();
+            });
         }
     }
 

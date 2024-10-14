@@ -3,6 +3,7 @@ using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Storage;
 using CommunityToolkit.Maui.Views;
 using MauiGeoBingo.Classes;
+using MauiGeoBingo.Converters;
 using MauiGeoBingo.Extensions;
 using Microsoft.Maui.Graphics;
 using System.Collections.Generic;
@@ -64,21 +65,6 @@ public partial class ButtonsPage : ContentPage, IDisposable
         await Task.Delay(500);
 
         CreateButtons();
-
-        /* TODO: Ta bort efter testning */
-        /*await Task.Delay(500);
-
-        Server = new();
-        Server.GameId = 1;
-        Server.PlayerIds = new();
-        Server.PlayerIds.Add(1);
-        Server.PlayerIds.Add(2);
-        UpdateAllGameSatus();
-
-        Server = null;*/
-        /* Slut på borttagning */
-
-
 
         if (Server != null && await AddPlayerToGame())
         {
@@ -163,6 +149,8 @@ public partial class ButtonsPage : ContentPage, IDisposable
 
                     List<int> playerIds = recived.PlayerIds.Take(4).ToList();
 
+                    Debug.WriteLine($"player_ids: {string.Join(", ", playerIds)}");
+
                     playerIds.Remove(AppSettings.PlayerId);
                     player1Button.Text = AppSettings.PlayerName;
 
@@ -173,7 +161,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
                         {
                             button.IsVisible = true;
                             string name = await GetNameAsync(playerIds[i]);
-                            //Debug.WriteLine($"Name: {name}, ID: {playerIds[i]}");
+                            Debug.WriteLine($"Name: {name}, ID: {playerIds[i]}");
                             button.Text = name;
                         }
                     }
@@ -302,7 +290,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
         if (Server.PlayerIds != null) url = $"{endpoint}/get/game/status/all/{string.Join(",", Server.PlayerIds)}/{Server.GameId}";
         else return;
 
-        //Debug.WriteLine(url);
+        Debug.WriteLine(url);
 
         HttpRequest rec = new(url);
 
@@ -515,6 +503,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
                             DisableAllButtons();
 
                             string playerName = await GetNameAsync(winner);
+                            Debug.WriteLine(playerName + " har vunnit....");
                             var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
                             await Toast.Make($"'{playerName}' har vunnit!!!", ToastDuration.Long).Show(cts.Token);
                             ActiveBingoButton = null;
@@ -522,15 +511,13 @@ public partial class ButtonsPage : ContentPage, IDisposable
                         }
                     }
 
-                    await UpdateAllGameSatus();
-
-                    Debug.WriteLine($"Är jag vinnare? {CheckIfBingo()}");
-
                     if (CheckIfBingo())
                     {
                         Debug.WriteLine("Japp jag vann!!!");
 
                         DisableAllButtons();
+
+                        if (Server != null) SetWinner(Server.GameId ?? 0, AppSettings.PlayerId);
 
                         var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
                         await Toast.Make("Grattis du vann!!!", ToastDuration.Long).Show(cts.Token);
@@ -540,6 +527,20 @@ public partial class ButtonsPage : ContentPage, IDisposable
 
             ActiveBingoButton = null;
         }
+    }
+
+    private async void SetWinner(int gameId, int playerId)
+    {
+        if (Server != null)
+        {
+            string endpoint = AppSettings.LocalBaseEndpoint;
+            HttpRequest rec = new($"{endpoint}/set/game/winner");
+            var response = await rec.PutAsync<ResponseData>(new
+            {
+                player_id = playerId,
+                game_id = gameId,
+            });
+        } 
     }
 
     private void SetButtonColor(Button button, int number)
@@ -725,6 +726,9 @@ public class GameStatusRootobject
     [JsonPropertyName("game_status")]
     public List<GameStatus> GameStatus { get; set; } = new();
 
+    [JsonPropertyName("winner")]
+    public int? Winner { get; set; }
+
     [JsonPropertyName("type")]
     public string? Type { get; set; }
     [JsonPropertyName("topic")]
@@ -855,53 +859,6 @@ public class GameStatus
 
     [JsonPropertyName("player_id")]
     public int PlayerId { get; set; }
-}
-
-
-
-public class AllGameStatusConverter : JsonConverter<Dictionary<int, List<GameStatus>>>
-{
-    public override Dictionary<int, List<GameStatus>> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        var dictionary = new Dictionary<int, List<GameStatus>>();
-
-        // Eftersom `all_game_status` är en array, måste vi börja med att läsa in arrayen
-        if (reader.TokenType != JsonTokenType.StartArray)
-            throw new JsonException();
-
-        while (reader.Read())
-        {
-            if (reader.TokenType == JsonTokenType.EndArray)
-                break;
-
-            // Nu börjar varje spel-ID objekt (exempelvis "1" eller "2")
-            if (reader.TokenType != JsonTokenType.StartObject)
-                throw new JsonException();
-
-            reader.Read(); // Läser nyckeln (spel-ID)
-            if (reader.TokenType != JsonTokenType.PropertyName)
-                throw new JsonException();
-
-            // Hämta spel-ID som är en sträng och konvertera till int
-            string keyString = reader.GetString();
-            int key = int.Parse(keyString);
-
-            reader.Read(); // Gå vidare till värdet (listan med GameStatus)
-
-            var gameStatusList = JsonSerializer.Deserialize<List<GameStatus>>(ref reader, options);
-
-            dictionary.Add(key, gameStatusList);
-
-            reader.Read(); // Slut på objektet
-        }
-
-        return dictionary;
-    }
-
-    public override void Write(Utf8JsonWriter writer, Dictionary<int, List<GameStatus>> value, JsonSerializerOptions options)
-    {
-        throw new NotImplementedException("Writing is not implemented for this converter");
-    }
 }
 
 
