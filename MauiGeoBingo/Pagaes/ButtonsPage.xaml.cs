@@ -13,6 +13,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Websocket.Client;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace MauiGeoBingo.Pagaes;
 
@@ -99,23 +100,23 @@ public partial class ButtonsPage : ContentPage, IDisposable
             var url = new Uri(AppSettings.LocalWSBaseEndpoint);
             _client = new WebsocketClient(url);
 
-            _client.MessageReceived.Subscribe(HandleSubscription);
+            _client.MessageReceived.Subscribe(HandleSubscriptionToServers);
 
             _client.ReconnectionHappened.Subscribe(async info =>
             {
                 Debug.WriteLine($"Reconnection happened, type: {info.Type}");
-                await Subscribe();
+                await SubscribeToServers();
             });
 
             await _client.Start();
-            await Subscribe();
+            await SubscribeToServers();
 
             //UpdateMyGameSatus();
             await UpdateAllGameSatus();
         }
     }
 
-    private async Task Subscribe()
+    private async Task SubscribeToServers()
     {
         await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
         {
@@ -124,14 +125,23 @@ public partial class ButtonsPage : ContentPage, IDisposable
         })));
     }
 
-    private async void HandleSubscription(ResponseMessage message)
+    private async void UnsubscribeToServers()
+    {
+        await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
+        {
+            action = "unsubscribe",
+            topic = "waiting_for_server",
+        })));
+    }
+
+    private async void HandleSubscriptionToServers(ResponseMessage message)
     {
         // TODO kolla om det är möjligt att skicka med den datan som finns i UpdateAllGameSatus() för att minska api calls
         var recived = JsonSerializer.Deserialize<ResponseData>(message.ToString());
         if (recived != null)
         {
             //Debug.WriteLine($"recived: {recived.IsRunning}");
-            if (recived.Type == "sub_auth")
+            if (recived.Type == "sub_auth" && Server != null)
             {
                 await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
                 {
@@ -179,11 +189,71 @@ public partial class ButtonsPage : ContentPage, IDisposable
                                 _bingoButtons[row, col].IsEnabled = true;
                             }
                         }
-                        Unsubscribe();
+                        UnsubscribeToServers();
+
+                        // Get python servern lite tid att svregestrera prenumerationen
+                        await Task.Delay(300);
+
+                        // Prenumerera på game status
+                        var url = new Uri(AppSettings.LocalWSBaseEndpoint);
+                        _client = new WebsocketClient(url);
+
+                        _client.MessageReceived.Subscribe(HandleSubscriptionToGameStatus);
+
+                        _client.ReconnectionHappened.Subscribe(async info =>
+                        {
+                            Debug.WriteLine($"Reconnection happened, type: {info.Type}");
+                            await SubscribeToGameStatus();
+                        });
+
+                        await _client.Start();
+                        await SubscribeToGameStatus();
+
                     }
                 });
             }
 
+        }
+    }
+
+    private async Task SubscribeToGameStatus()
+    {
+        await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
+        {
+            action = "subscribe",
+            topic = "stream_game_status",
+        })));
+    }
+
+    private async void UnsubscribeGameStatus()
+    {
+        await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
+        {
+            action = "unsubscribe",
+            topic = "stream_game_status",
+        })));
+    }
+
+    private async void HandleSubscriptionToGameStatus(ResponseMessage message)
+    {
+        var recived = JsonSerializer.Deserialize<GameStatusRootobject>(message.ToString());
+        if (Server != null && recived != null && recived.Success)
+        {
+            if (recived.Type == "sub_auth" && Server != null)
+            {
+                await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
+                {
+                    action = "publish",
+                    topic = "stream_game_status",
+                    message = "Give me the the game status",
+                    security_key = recived.SecurityKey,
+                    game_id = Server.GameId,
+                })));
+            }
+            else if (recived.Type == "message")
+            {
+                UpdateGrid(recived);
+            }
         }
     }
 
@@ -239,18 +309,22 @@ public partial class ButtonsPage : ContentPage, IDisposable
         var response = await rec.GetAsync<GameStatusRootobject>();
         if (response == null || !response.Success) return;
 
+        UpdateGrid(response);
+    }
+
+    private void UpdateGrid(GameStatusRootobject response)
+    {
         int userId = AppSettings.PlayerId;
         //int userId = 1;
         int i = 0;
-        for (int row = 0; row < 4/*_bingoButtons.GetLength(0)*/; row++)
+        for (int row = 0; row < _bingoButtons.GetLength(0); row++)
         {
-            for (int col = 0; col < 4/*_bingoButtons.GetLength(1)*/; col++)
+            for (int col = 0; col < _bingoButtons.GetLength(1); col++)
             {
-                // TODO: kombinera dessa två funktioner för att spara resurser
-                int number = response.GetFromAll(userId, row, col);
-                bool isHighest = response.IsHighest(userId, row, col);
+                (int number, bool isHighest) = response.GetNumberAndIsHighest(userId, row, col);
 
-                // TODO: bör komma på något bättre sätt att visa vem som äger knappen
+
+                // TBD: bör komma på något bättre sätt att visa om spelaren har högst poäng eller inte för knappen
                 _bingoButtons[row, col].Text = number.ToString();
                 if (isHighest)
                 {
@@ -441,7 +515,8 @@ public partial class ButtonsPage : ContentPage, IDisposable
                             DisableAllButtons();
 
                             string playerName = await GetNameAsync(winner);
-                            await Toast.Make($"'{playerName}' har vunnit!!!", ToastDuration.Long).Show();
+                            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                            await Toast.Make($"'{playerName}' har vunnit!!!", ToastDuration.Long).Show(cts.Token);
                             ActiveBingoButton = null;
                             return;
                         }
@@ -457,7 +532,8 @@ public partial class ButtonsPage : ContentPage, IDisposable
 
                         DisableAllButtons();
 
-                        await Toast.Make("Grattis du vann!!!", ToastDuration.Long).Show();
+                        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                        await Toast.Make("Grattis du vann!!!", ToastDuration.Long).Show(cts.Token);
                     }
                 }
             }
@@ -618,18 +694,13 @@ public partial class ButtonsPage : ContentPage, IDisposable
         return false;
     }
 
-    private async void Unsubscribe()
-    {
-        await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
-        {
-            action = "unsubscribe",
-            topic = "waiting_for_server",
-        })));
-    }
+    
 
     public async void Dispose()
     {
-        Unsubscribe();
+        UnsubscribeToServers();
+
+        UnsubscribeGameStatus();
 
         if (_client.IsRunning)
         {
@@ -653,6 +724,13 @@ public class GameStatusRootobject
 
     [JsonPropertyName("game_status")]
     public List<GameStatus> GameStatus { get; set; } = new();
+
+    [JsonPropertyName("type")]
+    public string? Type { get; set; }
+    [JsonPropertyName("topic")]
+    public string? Topic { get; set; }
+    [JsonPropertyName("security_key")]
+    public string? SecurityKey { get; set; }
 
     [JsonPropertyName("all_game_status")]
     [JsonConverter(typeof(AllGameStatusConverter))]
@@ -719,6 +797,33 @@ public class GameStatusRootobject
             }
         }
         return result;
+    }
+
+    public (int number, bool isHighest) GetNumberAndIsHighest(int playerId, int row, int col)
+    {
+        int number = 0;
+        bool isHighest = false;
+        if (AllGameStatus.TryGetValue(playerId, out List<GameStatus>? gsList))
+        {
+            if (gsList != null)
+            {
+                foreach (GameStatus gs in gsList)
+                {
+                    if (gs.Col == col && gs.Row == row)
+                    {
+                        number = gs.Number;
+                        isHighest = gs.IsHighestNumber;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                Debug.WriteLine($"player id: {playerId} hittas alltså inte");
+            }
+
+        }
+        return (number, isHighest);
     }
 }
 

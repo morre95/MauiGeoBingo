@@ -22,12 +22,14 @@ namespace MauiGeoBingo
 
         private async void MapClicked(object sender, EventArgs e)
         {
-            await Toast.Make("Grattis du vann!!!", ToastDuration.Long).Show();
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            await Toast.Make("Ingen kartsida på plats än!!!").Show(cts.Token);
             //await Navigation.PushAsync(new MapPage());
         }
 
         private async void ButtonsClicked(object sender, EventArgs e)
         {
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
             await Navigation.PushAsync(new ButtonsPage());
         }
 

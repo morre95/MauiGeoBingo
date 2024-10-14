@@ -77,7 +77,8 @@ public partial class ServerPage : ContentPage
             {
                 if (boolResult)
                 {
-                    await Toast.Make("Japp du lyckades precis skapa en ny server").Show();
+                    var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                    await Toast.Make("Japp du lyckades precis skapa en ny server").Show(cts.Token);
                 }
             }
         }
@@ -112,7 +113,8 @@ public partial class ServerPage : ContentPage
 
             if (result is ServerViewModel resultServer)
             {
-                await Toast.Make($"Servern {resultServer.GameName} är sparad").Show();
+                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                await Toast.Make($"Servern {resultServer.GameName} är sparad").Show(cts.Token);
                 string endpoint = AppSettings.LocalBaseEndpoint;
                 HttpRequest rec = new($"{endpoint}/edit/game/name");
 
