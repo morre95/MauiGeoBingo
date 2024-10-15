@@ -248,8 +248,8 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable, IEquatable<S
             } 
             else if (recived.Servers.Count < Servers.Count)
             {
-                Debug.WriteLine("Japp det ska raderas här");
                 var delResult = Servers.Where(s => recived.Servers.All(s2 => s2.GameId != s.GameId)).ToList();
+                Debug.WriteLine($"Japp det ska raderas här. Det är {delResult.Count}st som ska bort");
                 foreach (var server in delResult)
                 {
                     if (server != null)
@@ -258,6 +258,31 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable, IEquatable<S
                         Servers.Remove(server);
                     }
                 }
+
+
+                /*HashSet<ServerViewModel> hashSet = new();
+                if (Servers.Any(r => !hashSet.Add(r)))
+                {
+                    Debug.WriteLine("Japp det finns dubbletter"); 
+                }*/
+
+
+
+                /*// Kolla om det finns dubbletter
+                var query = Servers.GroupBy(x => x).Where(g => g.Count() > 1).Select(y => y.Key).ToList();
+                Debug.WriteLine($"Det finns {query.Count}st dubletter");
+                foreach (var server in query)
+                {
+                    if (server != null)
+                    {
+                        Debug.WriteLine($"Här ska {server.GameName} raderas");
+                        Servers.Remove(server);
+                    }
+                }
+
+                var distinct = Servers.Distinct().ToList();
+                Debug.WriteLine($"Det finns {distinct.Count}st unika och {Servers.Count}st totalt och {recived.Servers.Count}st motagna");*/
+
             }
             OnPropertyChanged(nameof(Servers));
         }
@@ -320,4 +345,22 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable, IEquatable<S
                _isMap.Equals(other.IsMap) /*&&
                PlayerIds.Equals(other.PlayerIds)*/;
     }
+
+    internal void Delete(ServerViewModel server)
+    {
+        Servers.Remove(server);
+    }
+
+    /*public bool Equals(ServerViewModel? other)
+    {
+        if (other == null)
+            return false;
+
+        return GameId.Equals(other.GameId);
+    }
+
+
+    public static bool operator ==(ServerViewModel lhs, ServerViewModel rhs) => lhs.Equals(rhs);
+
+    public static bool operator !=(ServerViewModel lhs, ServerViewModel rhs) => !(lhs == rhs);*/
 }

@@ -56,6 +56,26 @@ public partial class ButtonsPage : ContentPage, IDisposable
 
         Server = server;
 
+
+        // FIXME: Fullösning för att server.PlayerIds ibland är tom under android
+        if (server.PlayerIds == null || server.PlayerIds.Count < 1)
+        {
+            _ = SetMissingPlayerIds();
+        }
+
+    }
+
+    private async Task SetMissingPlayerIds()
+    {
+        if (Server == null) return;
+
+        string endpoint = AppSettings.LocalBaseEndpoint;
+        HttpRequest rec = new($"{endpoint}/get/game/players/{Server.GameId}");
+        var result = await rec.GetAsync<ResponseData>();
+        if (result != null)
+        {
+            Server.PlayerIds = result.PlayerIds;
+        }
     }
 
     private async void GridLoaded(object? sender, EventArgs e)
@@ -90,7 +110,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
 
             _client.ReconnectionHappened.Subscribe(async info =>
             {
-                Debug.WriteLine($"Reconnection happened, type: {info.Type}");
+                Debug.WriteLine($"Reconnection to new server scription happened, type: {info.Type}");
                 await SubscribeToServers();
             });
 
@@ -144,6 +164,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
                 {
                     int playerNum = recived.PlayerCount;
                     waitingText.Text = $"Waiting for players to join.\n{playerNum} joined so far";
+                
 
                     List<Button> buttons = [player2Button, player3Button, player4Button];
 
@@ -170,6 +191,8 @@ public partial class ButtonsPage : ContentPage, IDisposable
                     if (recived.IsRunning && waitingBox.IsVisible)
                     {
                         waitingBox.IsVisible = false;
+                        Debug.WriteLine("####### Avregga ToServers prenumerationen ##########");
+
                         for (int row = 0; row < _bingoButtons.GetLength(0); row++)
                         {
                             for (int col = 0; col < _bingoButtons.GetLength(1); col++)
@@ -177,6 +200,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
                                 _bingoButtons[row, col].IsEnabled = true;
                             }
                         }
+
                         UnsubscribeToServers();
 
                         // Get python servern lite tid att svregestrera prenumerationen
@@ -190,7 +214,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
 
                         _client.ReconnectionHappened.Subscribe(async info =>
                         {
-                            Debug.WriteLine($"Reconnection happened, type: {info.Type}");
+                            Debug.WriteLine($"Reconnection to GameStatus scription happened, type: {info.Type}");
                             await SubscribeToGameStatus();
                         });
 
@@ -199,6 +223,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
 
                     }
                 });
+
             }
 
         }
@@ -695,7 +720,12 @@ public partial class ButtonsPage : ContentPage, IDisposable
         return false;
     }
 
-    
+    protected override bool OnBackButtonPressed()
+    {
+        Dispose();
+        base.OnBackButtonPressed();
+        return false;
+    }
 
     public async void Dispose()
     {
@@ -711,6 +741,7 @@ public partial class ButtonsPage : ContentPage, IDisposable
         }
     }
 }
+
 
 public class QuizButton : Button
 {

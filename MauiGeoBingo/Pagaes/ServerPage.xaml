@@ -42,7 +42,7 @@
                 <Label Grid.Row="0" Grid.Column="4" Grid.ColumnSpan="4" Text="Controlls" HorizontalOptions="Center" />
                 <BoxView Grid.Row="1" Grid.ColumnSpan="7" Color="Gray" HeightRequest="2" HorizontalOptions="Fill" />
             </Grid>
-            <ActivityIndicator x:Name="activityIndicator" IsVisible="Collapse" IsRunning="true" Color="Orange" HorizontalOptions="Start" />
+            <ActivityIndicator x:Name="activityIndicator" IsVisible="False" IsRunning="true" Color="Orange" HorizontalOptions="Start" />
             <CollectionView ItemsSource="{Binding Servers}">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>

@@ -41,14 +41,20 @@ public partial class ServerPage : ContentPage
                 btn.IsEnabled = false;
                 btn.Text = "Deleting...";
 
+                _serverViewModel.Delete(server);
+                await Task.Delay(500);
+
+                btn.IsEnabled = true;
+                btn.Text = "Delete";
+
                 // TBD: Behövs detta, med att ladda om sidan???
-                server.Dispose();
+                /*server.Dispose();
 
                 await Task.Delay(500);
 
                 var page = Navigation.NavigationStack.LastOrDefault();
                 await Navigation.PushAsync(new ServerPage());
-                Navigation.RemovePage(page);
+                Navigation.RemovePage(page);*/
             }
         }
     }
@@ -96,11 +102,15 @@ public partial class ServerPage : ContentPage
             MainThread.BeginInvokeOnMainThread(async () =>
             {
                 activityIndicator.IsVisible = true;
-                await Task.Delay(5000);
+                await Task.Delay(2500);
                 activityIndicator.IsVisible = false;
             });
         });
         await task;*/
+
+        /*activityIndicator.IsVisible = true;
+        await Task.Delay(2500);
+        activityIndicator.IsVisible = false;*/
     }
 
     private void ServerPageUnloaded(object sender, EventArgs e)
