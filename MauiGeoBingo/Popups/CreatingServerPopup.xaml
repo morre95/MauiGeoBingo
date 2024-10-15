@@ -46,7 +46,7 @@
 
                 <StackLayout Grid.Row="1" Grid.Column="0" Margin="5,10,10,10">
                     <Label Text="Game name" TextColor="Black" />
-                    <Entry x:Name="gameName" Placeholder="Game Name" TextColor="Black" WidthRequest="150" />
+                    <Entry x:Name="gameName" Placeholder="Game Name" TextColor="Black" WidthRequest="150" Completed="GameNameCompleted" />
 
                 </StackLayout>
                 <StackLayout Grid.Row="1" Grid.Column="1" Margin="10">
