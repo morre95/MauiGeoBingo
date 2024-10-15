@@ -64,9 +64,6 @@ public partial class CreatingServerPopup : Popup
             else
             {
                 await Toast.Make($"You created game: '{gameName.Text}'").Show();
-                /*var page = Navigation.NavigationStack.LastOrDefault();
-                await Navigation.PushAsync(new ServerPage());
-                Navigation.RemovePage(page);*/
                 await CloseAsync(true, cts.Token);
             }
         }
@@ -138,6 +135,14 @@ public partial class CreatingServerPopup : Popup
 
                 Grid.SetRow(buttonsStack, 3);
             }
+        }
+    }
+
+    private void GameNameCompleted(object sender, EventArgs e)
+    {
+        if (sender is Entry entry)
+        {
+            NewGameClicked(new Button(), e);
         }
     }
 }

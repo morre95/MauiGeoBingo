@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Maui.Storage;
+using MauiGeoBingo.Classes;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -7,26 +8,27 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace MauiGeoBingo.Classes
+namespace MauiGeoBingo.Helpers
 {
-    internal class Helpers
+    internal class Helper
     {
         public static async Task<T?> ReadJsonFile<T>(string filePath)
         {
             string targetFile = Path.Combine(FileSystem.Current.AppDataDirectory, filePath);
-            if (!File.Exists(targetFile)) 
+            if (!File.Exists(targetFile))
             {
-                Debug.WriteLine($"AppPackageFileExistsAsync({filePath}): {await FileSystem.AppPackageFileExistsAsync(filePath)}");
-                Debug.WriteLine($"FileSystem.AppDataDirectory        : {FileSystem.AppDataDirectory}");
-                Debug.WriteLine($"FileSystem.Current.AppDataDirectory: {FileSystem.Current.AppDataDirectory}");
+                //Debug.WriteLine($"AppPackageFileExistsAsync({filePath}): {await FileSystem.AppPackageFileExistsAsync(filePath)}");
+                //Debug.WriteLine($"FileSystem.AppDataDirectory        : {FileSystem.AppDataDirectory}");
+                //Debug.WriteLine($"FileSystem.Current.AppDataDirectory: {FileSystem.Current.AppDataDirectory}");
                 using Stream fileStream = await FileSystem.Current.OpenAppPackageFileAsync(filePath);
                 return await JsonSerializer.DeserializeAsync<T>(fileStream);
             }
             else
             {
-                
+
                 Debug.WriteLine($"FileSystem.Current.AppDataDirectory: {targetFile}, File.Exists(): {File.Exists(targetFile)}");
 
                 using FileStream fileStream = File.OpenRead(targetFile);
@@ -86,5 +88,35 @@ namespace MauiGeoBingo.Classes
                 return false;
             }
         }
+
+        public static async Task<string> GetNameAsync(int playerId)
+        {
+            string endpoint = AppSettings.LocalBaseEndpoint;
+            HttpRequest rec = new($"{endpoint}/player/name?player_id={playerId}");
+
+            try
+            {
+                var result = await rec.GetAsync<ResponseData>();
+
+                if (result != null && result.PlayerName != null)
+                {
+                    return result.PlayerName;
+                }
+            }
+            catch (Exception)
+            {
+                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                await Toast.Make("Något är fel på servern").Show(cts.Token);
+            }
+
+            return string.Empty;
+        }
+
+        private class ResponseData
+        {
+            [JsonPropertyName("player_name")]
+            public string? PlayerName { get; set; }
+        }
+
     }
 }

@@ -313,11 +313,13 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable, IEquatable<S
 
     private async void Unsubscribe()
     {
-        await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
-        {
-            action = "unsubscribe",
-            topic = "new_servers",
-        })));
+        await Task.Run(async () => 
+            _client.Send(JsonSerializer.Serialize(new
+            {
+                action = "unsubscribe",
+                topic = "new_servers",
+            }))
+        );
     }
 
     public async void Dispose()

@@ -2,8 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:ui="clr-namespace:MauiGeoBingo.Pagaes"
-             x:Class="MauiGeoBingo.Pagaes.ButtonsPage"
-             x:Name="thisPage">
+             x:Class="MauiGeoBingo.Pagaes._ButtonsPage">
     <ContentPage.Resources>
         <Style TargetType="Button">
             <!-- <Setter Property="BackgroundColor" Value="White" /> -->
@@ -11,7 +10,7 @@
             <Setter Property="Margin" Value="5" />
             <Setter Property="HeightRequest" Value="45" />
 
-            <!--<Setter Property="VisualStateManager.VisualStateGroups">
+            <Setter Property="VisualStateManager.VisualStateGroups">
                 <VisualStateGroupList>
                     <VisualStateGroup x:Name="CommonStates">
                         <VisualState x:Name="Normal">
@@ -22,6 +21,7 @@
                         </VisualState>
                         <VisualState x:Name="Disabled" />
                         <VisualState x:Name="Pressed">
+                            <!-- define your custom 'pressed' styles here -->
                             <VisualState.Setters>
                                 <Setter Property="BackgroundColor" Value="Orange" />
                                 <Setter Property="TextColor" Value="Black" />
@@ -29,7 +29,7 @@
                         </VisualState>
                     </VisualStateGroup>
                 </VisualStateGroupList>
-            </Setter>-->
+            </Setter>
         </Style>
         <Style TargetType="{x:Type ui:QuizButton}">
             <Setter Property="BackgroundColor" Value="LightGray" />
@@ -47,20 +47,10 @@
                 <Button Text="Player 3" x:Name="player3Button" Grid.Row="1" Grid.Column="0" BackgroundColor="Red" TextColor="White" IsVisible="False" />
                 <Button Text="Player 4" x:Name="player4Button" Grid.Row="1" Grid.Column="1" BackgroundColor="Yellow" TextColor="Black" IsVisible="False" />
             </Grid>
-            <CollectionView ItemsSource="{Binding Buttons}">
-                <CollectionView.ItemsLayout>
-                    <GridItemsLayout Orientation="Vertical"  Span="4" />
-                </CollectionView.ItemsLayout>
-                <CollectionView.ItemTemplate>
-                    <DataTemplate>
-                        <Button Text="{Binding Score}" ToolTipProperties.Text="{Binding ToolTip}" BackgroundColor="{Binding BackgroundColor}" TextColor="{Binding TxtColor}" Clicked="QuestionButtonClicked" />
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
-
+            <Grid x:Name="gameGrid" RowDefinitions="*,*,*,*" ColumnDefinitions="*,*,*,*"></Grid>
             <Grid x:Name="questionGrid" RowDefinitions="*,*,*" ColumnDefinitions="*,*"></Grid>
-
-            <!--<Border x:Name="waitingBox" BackgroundColor="White" Stroke="Transparent" WidthRequest="250" HorizontalOptions="Center" Padding="5" IsVisible="False">
+            
+            <Border x:Name="waitingBox" BackgroundColor="White" Stroke="Transparent" WidthRequest="250" HorizontalOptions="Center" Padding="5" IsVisible="False">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="5"/>
                 </Border.StrokeShape>
@@ -69,7 +59,7 @@
                     <Label x:Name="waitingText" Text="Waiting for players to join" HorizontalOptions="Center" TextColor="Black" FontSize="Medium" />
                     <Button Text="Start game" x:Name="startGame" Clicked="StartGameClicked" IsVisible="False" BackgroundColor="Black" TextColor="White" />
                 </StackLayout>
-            </Border>-->
+            </Border>
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

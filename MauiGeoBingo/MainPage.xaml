@@ -30,10 +30,12 @@
 
     <ScrollView Loaded="ScrollViewLoaded">
         <VerticalStackLayout Padding="30,0" Spacing="25">
-            <Button Text="Go to Map" Clicked="MapClicked" />
-            <Button Text="Go to Buttons" Clicked="ButtonsClicked" />
-            <Button Text="Settings" Clicked="SettingsClicked" />
-            <Button Text="Server" Clicked="ServerClicked" />
+            <Button Text="Go to Map" Clicked="MapClicked" IsEnabled="{Binding IsEnabled}" />
+            <Button Text="Go to Buttons" Clicked="ButtonsClicked" IsEnabled="{Binding IsEnabled}" />
+            <Button Text="Settings" Clicked="SettingsClicked" IsEnabled="{Binding IsEnabled}" />
+            <Button Text="Server" Clicked="ServerClicked" IsEnabled="{Binding IsEnabled}" />
+            <Label Text="Något är fel." FontSize="Medium" HorizontalOptions="Center" IsVisible="{Binding WarningVisible}" />
+            <Label Text="Servern kan tex. vara offonline" FontSize="Small" HorizontalOptions="Center" IsVisible="{Binding WarningVisible}" />
         </VerticalStackLayout>
     </ScrollView>
 

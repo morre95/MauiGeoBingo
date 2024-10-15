@@ -3,6 +3,7 @@ using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Maui.Storage;
 using CommunityToolkit.Maui.Views;
 using MauiGeoBingo.Classes;
+using MauiGeoBingo.Helpers;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
@@ -24,7 +25,7 @@ public partial class SettingsPage : ContentPage
 
     private async void CategoriesLoaded(object sender, EventArgs e)
     {
-        var cats = await Helpers.ReadJsonFile<TriviaCategorieList>("quizCategories.json");
+        var cats = await Helper.ReadJsonFile<TriviaCategorieList>("quizCategories.json");
 
         if (cats != null)
         {
@@ -50,7 +51,7 @@ public partial class SettingsPage : ContentPage
     {
         if (sender is Entry entry)
         {
-            if (!await Helpers.SavePlayerName(entry.Text))
+            if (!await Helper.SavePlayerName(entry.Text))
             {
                 await DisplayAlert("Alert", "Something whent wrong", "OK");
             }
@@ -65,7 +66,7 @@ public partial class SettingsPage : ContentPage
     {
         if (sender is Button button)
         {
-            AppSettings app = new();
+            AppSettings app = AppSettings.Instance;
             app.ResetToDefalt();
 
             var page = Navigation.NavigationStack.LastOrDefault();
@@ -112,7 +113,7 @@ public partial class SettingsPage : ContentPage
 
     private async Task<string?> SaveFile(string fileName, string text, CancellationToken cancellationToken = default)
     {
-        return await Helpers.WirteToFile(fileName, text);
+        return await Helper.WirteToFile(fileName, text);
     }
 
     private void JsonFileLastUpdateTextLoaded(object sender, EventArgs e)
