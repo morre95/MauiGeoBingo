@@ -5,6 +5,7 @@ using CommunityToolkit.Maui.Storage;
 using CommunityToolkit.Maui.Views;
 using MauiGeoBingo.Classes;
 using MauiGeoBingo.Pagaes;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -15,9 +16,32 @@ namespace MauiGeoBingo
 {
     public partial class MainPage : ContentPage
     {
+
+        private MainPageViewModel _mainPageViewModel;
+
         public MainPage()
         {
             InitializeComponent();
+
+            _mainPageViewModel = new();
+
+            BindingContext = _mainPageViewModel;
+
+            SetName();
+        }
+
+        private async void SetName()
+        {
+            string name = await Helpers.GetNameAsync(AppSettings.PlayerId);
+            if (name != string.Empty)
+            {
+                AppSettings.PlayerName = name;
+                _mainPageViewModel.IsEnabled = true;
+            }
+            else
+            {
+                _mainPageViewModel.IsEnabled = false;
+            }
         }
 
         private async void MapClicked(object sender, EventArgs e)
@@ -29,8 +53,11 @@ namespace MauiGeoBingo
 
         private async void ButtonsClicked(object sender, EventArgs e)
         {
-            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
             await Navigation.PushAsync(new ButtonsPage());
+        }
+        private async void Buttons2Clicked(object sender, EventArgs e)
+        {
+            await Navigation.PushAsync(new ButtonsPage2());
         }
 
         private async void SettingsClicked(object sender, EventArgs e)
