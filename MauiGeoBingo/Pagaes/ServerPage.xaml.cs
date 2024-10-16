@@ -63,15 +63,21 @@ public partial class ServerPage : ContentPage
     {
         if (sender is Button btn && btn.BindingContext is ServerViewModel server)
         {
-            Debug.WriteLine($"Go to server: {server.GameName} with id: {server.GameId}");
+            Debug.WriteLine($"Gå till server: {server.GameName} med id: {server.GameId}");
 
+            
 
             MainThread.BeginInvokeOnMainThread(async () =>
             {
-                var page = Navigation.NavigationStack.LastOrDefault();
-                await Navigation.PushAsync(new ButtonsPage(server));
-                Navigation.RemovePage(page);
                 _serverViewModel.Dispose();
+
+                // Ge servern tid att avregistrera
+                await Task.Delay(500);
+
+                var page = Navigation.NavigationStack.LastOrDefault();
+                //await Navigation.PushAsync(new ButtonsPage(server));
+                await Navigation.PushAsync(new ButtonsPage2(server));
+                Navigation.RemovePage(page);
             });
         }
     }

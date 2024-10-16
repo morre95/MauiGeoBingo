@@ -11,7 +11,7 @@
             <Setter Property="Margin" Value="5" />
             <Setter Property="HeightRequest" Value="45" />
 
-            <Setter Property="VisualStateManager.VisualStateGroups">
+            <!--<Setter Property="VisualStateManager.VisualStateGroups">
                 <VisualStateGroupList>
                     <VisualStateGroup x:Name="CommonStates">
                         <VisualState x:Name="Normal">
@@ -22,7 +22,6 @@
                         </VisualState>
                         <VisualState x:Name="Disabled" />
                         <VisualState x:Name="Pressed">
-                            <!-- define your custom 'pressed' styles here -->
                             <VisualState.Setters>
                                 <Setter Property="BackgroundColor" Value="Orange" />
                                 <Setter Property="TextColor" Value="Black" />
@@ -30,7 +29,7 @@
                         </VisualState>
                     </VisualStateGroup>
                 </VisualStateGroupList>
-            </Setter>
+            </Setter>-->
         </Style>
         <Style TargetType="{x:Type ui:QuizButton}">
             <Setter Property="BackgroundColor" Value="LightGray" />
@@ -54,7 +53,7 @@
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-                        <Button Text="{Binding Score}" ToolTipProperties.Text="{Binding ToolTip}" Clicked="QuestionButtonClicked" />
+                        <Button Text="{Binding ButtonTxt}" ToolTipProperties.Text="{Binding ToolTip}" BackgroundColor="{Binding BackgroundColor}" TextColor="{Binding TxtColor}" Clicked="QuestionButtonClicked" />
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>

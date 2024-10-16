@@ -27,7 +27,7 @@ public partial class ButtonsPage2 : ContentPage
         _buttonViewModel = new();
 
         BindingContext = _buttonViewModel;
-        _buttonViewModel.CreateButtons();
+        _ = _buttonViewModel.CreateButtonsAsync();
 
         //thisPage.Loaded += ContentPage_Loaded;
     }
@@ -37,7 +37,7 @@ public partial class ButtonsPage2 : ContentPage
         InitializeComponent();
         _buttonViewModel = new();
         BindingContext = _buttonViewModel;
-        _buttonViewModel.CreateButtons();
+        _ = _buttonViewModel.CreateButtonsAsync();
 
         Server = server;
 
@@ -57,6 +57,7 @@ public partial class ButtonsPage2 : ContentPage
             var popup = new QuestionPopup(question);
 
             var result = await this.ShowPopupAsync(popup, CancellationToken.None);
+
             if (result is bool boolResult)
             {
                 if (boolResult)
@@ -67,34 +68,70 @@ public partial class ButtonsPage2 : ContentPage
                 {
                     buttonViewModel.Score--;
                 }
-                SetButtonColor(btn, buttonViewModel.Score);
-                _buttonViewModel.SetNewQiestion(buttonViewModel);
+               
             }
+            else if (result == null)
+            {
+                buttonViewModel.Score--;
+            }
+
+
+            // TODO: Bara för testning
+            if (buttonViewModel.Score > 0)
+            {
+                buttonViewModel.IsHighest = Random.Shared.NextDouble() > 0.5;
+            }
+
+
+
+            SetButtonColor(buttonViewModel);
+            _buttonViewModel.SetNewQiestion(buttonViewModel);
         }
     }
 
     private Color _winningColor = Colors.Green;
 
-    private void SetButtonColor(Button button, int score)
+    private void SetButtonColor(ButtonViewModel model)
     {
         
-        if (score > 0)
+        if (model.Score > 0)
         {
-            button.BackgroundColor = _winningColor;
+            model.BackgroundColor = _winningColor;
         } 
-        else if (score == 0)
+        else if (model.Score == 0)
         {
-            button.BackgroundColor = null;
+            model.BackgroundColor = null;
         }
         else
         {
-            button.BackgroundColor = Colors.Red;
+            model.BackgroundColor = Colors.Red;
         }
+    }
+
+    private async Task<bool> AddPlayerToGame()
+    {
+        if (Server == null) return false;
+
+        string endpoint = AppSettings.LocalBaseEndpoint;
+        HttpRequest rec = new($"{endpoint}/add/player/to/game");
+        var response = await rec.PutAsync<GameStatusRootobject>(new
+        {
+            player_id = AppSettings.PlayerId,
+            game_id = Server.GameId,
+        });
+
+        if (response == null)
+        {
+            await DisplayAlert("Alert", "Somthing with ther server is wrong", "OK");
+            return false;
+        }
+        return true;
     }
 
     private async void ContentPage_Loaded(object? sender, EventArgs e)
     {
-        if (Server == null) 
+        bool playerAdded = await AddPlayerToGame();
+        if (Server == null || !playerAdded) 
         {
             await Navigation.PopAsync();
             return;
@@ -113,7 +150,7 @@ public partial class ButtonsPage2 : ContentPage
 
             List<int> playerIds = model.PlayerIds.Take(4).ToList();
 
-            Debug.WriteLine($"player_ids: {string.Join(", ", playerIds)}");
+            //Debug.WriteLine($"är det detta... player_ids: {string.Join(", ", playerIds)}");
 
             playerIds.Remove(AppSettings.PlayerId);
             player1Button.Text = AppSettings.PlayerName;
@@ -129,15 +166,16 @@ public partial class ButtonsPage2 : ContentPage
                     button.Text = name;
                 }
             }
+
+            // TODO: Här startar spelet. Så det bör skrivas
+
         }
         else
         {
             await Navigation.PopAsync();
         }
 
-    }
-
-    
+    } 
 }
 
 public class ButtonViewModel : INotifyPropertyChanged
@@ -154,6 +192,22 @@ public class ButtonViewModel : INotifyPropertyChanged
             if (_score != value)
             {
                 _score = value;
+                OnPropertyChanged();
+                // TBD: Bör ses över om detta behövs
+                OnPropertyChanged(nameof(ButtonTxt));
+            }
+        }
+    }
+
+    private string _buttonTxt = string.Empty;
+    public string ButtonTxt
+    {
+        get => IsHighest ? Score.ToString() : _buttonTxt;
+        set
+        {
+            if (_buttonTxt != value)
+            {
+                _buttonTxt = value;
                 OnPropertyChanged();
             }
         }
@@ -215,34 +269,71 @@ public class ButtonViewModel : INotifyPropertyChanged
         }
     }
 
-    private Color? _bgColor;
-    public Color? BgColor
+    private Color? _backgroundColor;
+    public Color? BackgroundColor
     {
-        get => _bgColor;
+        get => _backgroundColor;
         set
         {
-            if (_bgColor != value)
+            if (_backgroundColor != value)
             {
-                _bgColor = value;
+                _backgroundColor = value;
                 OnPropertyChanged();
             }
         }
     }
 
-   
+    private bool _isHighest = true;
+    public bool IsHighest
+    {
+        get => _isHighest;
+        set
+        {
+            if (_isHighest != value)
+            {
+                _isHighest = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    private Color _txtColor;
+    public Color TxtColor
+    {
+        get {
+            if (BackgroundColor == ColorP1) return Colors.Black;
+            if (BackgroundColor == ColorP2) return Colors.White;
+            if (BackgroundColor == ColorP3) return Colors.White;
+            if (BackgroundColor == ColorP4) return Colors.White;
+            if (BackgroundColor == Colors.Red) return Colors.White;
+            if (BackgroundColor == Colors.Green) return Colors.White;
+
+            return Colors.Black;
+                    
+            } 
+    }
+
+    public Color ColorWin = Colors.Lime;
+
+    public Color ColorP1 = Colors.Wheat;
+    public Color ColorP2 = Colors.Blue;
+    public Color ColorP3 = Colors.Red;
+    public Color ColorP4 = Colors.Yellow;
+
 
     private List<Result> _questions = [];
 
-    private bool _isHighest = true;
-    public bool IsHighest => _isHighest;
+    
 
 
     public ButtonViewModel()
 	{
         Buttons = [];
+
+        BackgroundColor = ColorP1;
     }
 
-    public async void CreateButtons()
+    public async Task CreateButtonsAsync()
     {
         Quiz? quiz = null;
         string fileName = AppSettings.QuizJsonFileName;
@@ -289,7 +380,7 @@ public class ButtonViewModel : INotifyPropertyChanged
         model.QuestionAndAnswer = result;
     }
 
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }

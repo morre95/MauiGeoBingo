@@ -36,6 +36,7 @@ public partial class QuestionPopup : Popup
 
             button.Clicked += AnswerClicked;
 
+            // TODO: måste tas bort vid skarpt läge
             if (_question.CorrectAnswer == answer) button.BackgroundColor = Colors.Gold;
 
             questionGrid.Add(button);

@@ -5,6 +5,7 @@ using System.Text.Json;
 using Websocket.Client;
 using MauiGeoBingo.Pagaes;
 using System.Diagnostics;
+using System.Net.WebSockets;
 
 namespace MauiGeoBingo.Popups;
 
@@ -22,30 +23,40 @@ public partial class OverlayPopup : Popup
 
         var url = new Uri(AppSettings.LocalWSBaseEndpoint);
         _client = new WebsocketClient(url);
+
+        if (server.IsMyServer)
+        {
+            okButton.IsVisible = true;
+        }
     }
 
     private async void PopupLoaded(object sender, EventArgs e)
     {
-        _client.MessageReceived.Subscribe(HandleSubscriptionToServers);
+        _client.MessageReceived.Subscribe(HandleSubscription);
 
+        _client.ReconnectTimeout = TimeSpan.FromSeconds(30);
         _client.ReconnectionHappened.Subscribe(async info =>
         {
             Debug.WriteLine($"Reconnection to new server scription happened, type: {info.Type}");
-            await SubscribeToServers();
+            await Subscribe();
         });
 
         await _client.Start();
-        await SubscribeToServers();
+        await Subscribe();
     }
 
-    async void OnOKButtonClicked(object? sender, EventArgs e)
+    private async void OnOKButtonClicked(object? sender, EventArgs e)
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        await CloseAsync(true, cts.Token);
+        if (GameStatus != null)
+        {
+            await Unsubscribe();
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            await CloseAsync(GameStatus, cts.Token);
+        }
     }
 
 
-    private async Task SubscribeToServers()
+    private async Task Subscribe()
     {
         await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
         {
@@ -54,7 +65,22 @@ public partial class OverlayPopup : Popup
         })));
     }
 
-    private async void HandleSubscriptionToServers(ResponseMessage message)
+    private async Task Unsubscribe()
+    {
+        await Task.Run(async () => {
+            _client.Send(JsonSerializer.Serialize(new
+            {
+                action = "unsubscribe",
+                topic = "waiting_for_server",
+            }));
+            await _client.Stop(WebSocketCloseStatus.NormalClosure, $"Closed in server by the {this.GetType().Name} client");
+            //_client.Dispose();
+        });
+    }
+
+    private GameStatusRootobject? GameStatus { get; set; }
+
+    private async void HandleSubscription(ResponseMessage message)
     {
         var recived = JsonSerializer.Deserialize<GameStatusRootobject>(message.ToString());
 
@@ -73,16 +99,26 @@ public partial class OverlayPopup : Popup
             }
             else if (recived.Type == "message")
             {
-                int numberOfPlayers = recived.PlayerCount;
+                GameStatus = recived;
+                if (recived.IsRunning)
+                {
+                    await Unsubscribe();
+                    var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                    await CloseAsync(GameStatus, cts.Token);
+                    return;
+                }
 
-                //List<Button> buttons = [player2Button, player3Button, player4Button];
+                int numberOfPlayers = recived.PlayerCount;
 
                 List<int> playerIds = recived.PlayerIds.Take(4).ToList();
 
-                Debug.WriteLine($"player_ids: {string.Join(", ", playerIds)}");
+                Debug.WriteLine($"player_ids: {string.Join(", ", playerIds)} är med här");
 
-                playerIds.Remove(AppSettings.PlayerId);
-                //player1Button.Text = AppSettings.PlayerName;
+                //playerIds.Remove(AppSettings.PlayerId);
+
+                MainThread.BeginInvokeOnMainThread(() => {
+                    waitingText.Text = $"Waiting for players to join.\n{numberOfPlayers} joined so far";
+                });
             }
         }
     }

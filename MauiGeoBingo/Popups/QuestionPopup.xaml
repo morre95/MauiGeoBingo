@@ -13,6 +13,11 @@
             <Setter Property="VerticalOptions" Value="Start" />
             <Setter Property="CanBeDismissedByTappingOutsideOfPopup" Value="True" />
         </Style>
+
+        <Style TargetType="Button">
+            <Setter Property="BackgroundColor" Value="AntiqueWhite" />
+            <Setter Property="TextColor" Value="Black" />
+        </Style>
     </toolkit:Popup.Resources>
 
     <VerticalStackLayout Margin="5,120,5,5">

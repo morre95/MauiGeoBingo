@@ -37,10 +37,12 @@ namespace MauiGeoBingo
             {
                 AppSettings.PlayerName = name;
                 _mainPageViewModel.IsEnabled = true;
+                _mainPageViewModel.WarningVisible = false;
             }
             else
             {
                 _mainPageViewModel.IsEnabled = false;
+                _mainPageViewModel.WarningVisible = true;
             }
         }
 

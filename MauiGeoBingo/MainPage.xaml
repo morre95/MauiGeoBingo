@@ -35,6 +35,8 @@
             <Button Text="Settings" Clicked="SettingsClicked" IsEnabled="{Binding IsEnabled}" />
             <Button Text="Server" Clicked="ServerClicked" IsEnabled="{Binding IsEnabled}" />
             <Button Text="Go to Buttons 2" Clicked="Buttons2Clicked" IsEnabled="{Binding IsEnabled}" />
+            <Label Text="Något är fel." FontSize="Medium" HorizontalOptions="Center" IsVisible="{Binding WarningVisible}" />
+            <Label Text="Servern kan tex. vara offonline" FontSize="Small" HorizontalOptions="Center" IsVisible="{Binding WarningVisible}" />
         </VerticalStackLayout>
     </ScrollView>
 

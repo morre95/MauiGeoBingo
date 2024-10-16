@@ -8,13 +8,29 @@ namespace MauiGeoBingo
         public event PropertyChangedEventHandler? PropertyChanged;
 
         private bool _isEnabled = false;
-        public bool IsEnabled {
+        public bool IsEnabled 
+        {
             get => _isEnabled;
             set
             {
                 if (_isEnabled != value)
                 {
                     _isEnabled = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        private bool _warningVisible = false;
+
+        public bool WarningVisible
+        {
+            get => _warningVisible;
+            set
+            {
+                if (_warningVisible != value)
+                {
+                    _warningVisible = value;
                     OnPropertyChanged();
                 }
             }
