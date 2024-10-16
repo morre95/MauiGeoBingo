@@ -57,10 +57,7 @@ namespace MauiGeoBingo
         {
             await Navigation.PushAsync(new ButtonsPage());
         }
-        private async void Buttons2Clicked(object sender, EventArgs e)
-        {
-            await Navigation.PushAsync(new ButtonsPage2());
-        }
+        
 
         private async void SettingsClicked(object sender, EventArgs e)
         {

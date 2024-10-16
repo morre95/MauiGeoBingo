@@ -1,668 +1,172 @@
-using CommunityToolkit.Maui.Alerts;
-using CommunityToolkit.Maui.Core;
-using CommunityToolkit.Maui.Storage;
-using CommunityToolkit.Maui.Views;
 using MauiGeoBingo.Classes;
-using MauiGeoBingo.Converters;
-using MauiGeoBingo.Extensions;
-using Microsoft.Maui.Graphics;
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
-using System.Net;
-using System.Net.WebSockets;
-using System.Text;
+using System.Runtime.CompilerServices;
+using CommunityToolkit.Maui.Views;
+using MauiGeoBingo.Popups;
+using System.Globalization;
+using Websocket.Client;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Websocket.Client;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+using CommunityToolkit.Maui.Alerts;
+using System.Net.WebSockets;
 
 namespace MauiGeoBingo.Pagaes;
 
-public partial class ButtonsPage : ContentPage, IDisposable
+public partial class ButtonsPage : ContentPage
 {
-    private KeyValuePair<string, Button>? ActiveBingoButton { get; set; }
 
-    private Button[,] _bingoButtons;
-
-    private Color _winningColor = Colors.Green;
+    private ButtonViewModel _buttonViewModel;
 
     private ServerViewModel? Server { get; set; } = null;
 
     private WebsocketClient _client;
 
+    //IDispatcherTimer timer;
+
     public ButtonsPage()
-    {
-        InitializeComponent();
+	{
+		InitializeComponent();
+        _buttonViewModel = new();
 
-        var url = new Uri(AppSettings.LocalWSBaseEndpoint);
-        _client = new WebsocketClient(url);
+        BindingContext = _buttonViewModel;
+        _ = _buttonViewModel.CreateButtonsAsync();
 
-        _bingoButtons = new Button[4, 4];
-        gameGrid.Loaded += GridLoaded;
+        //thisPage.Loaded += ContentPageLoaded;
 
-        Server = null;
+        /*timer = Dispatcher.CreateTimer();
+        timer.Interval = TimeSpan.FromMilliseconds(1000);
+        timer.Tick += (s, e) =>
+        {
+            foreach (var button in _buttonViewModel.Buttons)
+            {
+                if (button.Score > 0)
+                {
+                    button.IsHighest = Random.Shared.NextDouble() > 0.5;
+                }
+                SetButtonColor(button);
+            }
+            
+        };
+        timer.Start();*/
     }
 
     public ButtonsPage(ServerViewModel server)
     {
         InitializeComponent();
+        _buttonViewModel = new();
+        BindingContext = _buttonViewModel;
+        _ = _buttonViewModel.CreateButtonsAsync();
+
+        Server = server;
 
         var url = new Uri(AppSettings.LocalWSBaseEndpoint);
         _client = new WebsocketClient(url);
 
-        _bingoButtons = new Button[4, 4];
-        gameGrid.Loaded += GridLoaded;
-
-
-        Server = server;
-
-
-        // FIXME: Fullösning för att server.PlayerIds ibland är tom under android
-        if (server.PlayerIds == null || server.PlayerIds.Count < 1)
-        {
-            _ = SetMissingPlayerIds();
-        }
+        thisPage.Loaded += ContentPageLoaded;
 
     }
 
-    private async Task SetMissingPlayerIds()
+    private async void QuestionButtonClicked(object sender, EventArgs e)
     {
-        if (Server == null) return;
-
-        string endpoint = AppSettings.LocalBaseEndpoint;
-        HttpRequest rec = new($"{endpoint}/get/game/players/{Server.GameId}");
-        var result = await rec.GetAsync<ResponseData>();
-        if (result != null)
+        if (sender is Button btn && btn.BindingContext is ButtonViewModel buttonViewModel)
         {
-            Server.PlayerIds = result.PlayerIds;
-        }
-    }
+            var question = buttonViewModel.QuestionAndAnswer;
+            //Debug.WriteLine($"Frågan: {question.Question}, Row: {buttonViewModel.Row}, Kolumn: {buttonViewModel.Col}");
+            var popup = new QuestionPopup(question);
 
-    private async void GridLoaded(object? sender, EventArgs e)
-    {
-        player1Button.Text = AppSettings.PlayerName;
+            var result = await this.ShowPopupAsync(popup, CancellationToken.None);
 
-        await Task.Delay(500);
-
-        CreateButtons();
-
-        if (Server != null && await AddPlayerToGame())
-        {
-
-            waitingBox.IsVisible = true;
-
-            while (_bingoButtons[3, 3] == null)
+            if (result is bool boolResult)
             {
-                await Task.Delay(10);
-            }
-
-            DisableAllButtons();
-
-            if (Server.IsMyServer)
-            {
-                startGame.IsVisible = true;
-            }
-
-            var url = new Uri(AppSettings.LocalWSBaseEndpoint);
-            _client = new WebsocketClient(url);
-
-            _client.MessageReceived.Subscribe(HandleSubscriptionToServers);
-
-            _client.ReconnectionHappened.Subscribe(async info =>
-            {
-                Debug.WriteLine($"Reconnection to new server scription happened, type: {info.Type}");
-                await SubscribeToServers();
-            });
-
-            await _client.Start();
-            await SubscribeToServers();
-
-            //UpdateMyGameSatus();
-            await UpdateAllGameSatus();
-        }
-    }
-
-    private async Task SubscribeToServers()
-    {
-        await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
-        {
-            action = "subscribe",
-            topic = "waiting_for_server",
-        })));
-    }
-
-    private async void UnsubscribeToServers()
-    {
-        await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
-        {
-            action = "unsubscribe",
-            topic = "waiting_for_server",
-        })));
-    }
-
-    private async void HandleSubscriptionToServers(ResponseMessage message)
-    {
-        // TODO kolla om det är möjligt att skicka med den datan som finns i UpdateAllGameSatus() för att minska api calls
-        var recived = JsonSerializer.Deserialize<ResponseData>(message.ToString());
-        if (recived != null)
-        {
-            //Debug.WriteLine($"recived: {recived.IsRunning}");
-            if (recived.Type == "sub_auth" && Server != null)
-            {
-                await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
+                if (boolResult)
                 {
-                    action = "publish",
-                    topic = "waiting_for_server",
-                    message = "Give me the player count",
-                    security_key = recived.SecurityKey,
-                    game_id = Server.GameId,
-                })));
-            }
-            else if (recived.Type == "message")
-            {
-                MainThread.BeginInvokeOnMainThread(async () =>
-                {
-                    int playerNum = recived.PlayerCount;
-                    waitingText.Text = $"Waiting for players to join.\n{playerNum} joined so far";
-                
-
-                    List<Button> buttons = [player2Button, player3Button, player4Button];
-
-                    List<int> playerIds = recived.PlayerIds.Take(4).ToList();
-
-                    Debug.WriteLine($"player_ids: {string.Join(", ", playerIds)}");
-
-                    playerIds.Remove(AppSettings.PlayerId);
-                    player1Button.Text = AppSettings.PlayerName;
-
-                    for (int i = 0; i < playerIds.Count; i++)
-                    {
-                        Button button = buttons[i];
-                        if (!button.IsVisible)
-                        {
-                            button.IsVisible = true;
-                            string name = await GetNameAsync(playerIds[i]);
-                            Debug.WriteLine($"Name: {name}, ID: {playerIds[i]}");
-                            button.Text = name;
-                        }
-                    }
-
-                    //Debug.WriteLine($"IsRunning: {recived.IsRunning}");
-                    if (recived.IsRunning && waitingBox.IsVisible)
-                    {
-                        waitingBox.IsVisible = false;
-                        Debug.WriteLine("####### Avregga ToServers prenumerationen ##########");
-
-                        for (int row = 0; row < _bingoButtons.GetLength(0); row++)
-                        {
-                            for (int col = 0; col < _bingoButtons.GetLength(1); col++)
-                            {
-                                _bingoButtons[row, col].IsEnabled = true;
-                            }
-                        }
-
-                        UnsubscribeToServers();
-
-                        // Get python servern lite tid att svregestrera prenumerationen
-                        await Task.Delay(300);
-
-                        // Prenumerera på game status
-                        var url = new Uri(AppSettings.LocalWSBaseEndpoint);
-                        _client = new WebsocketClient(url);
-
-                        _client.MessageReceived.Subscribe(HandleSubscriptionToGameStatus);
-
-                        _client.ReconnectionHappened.Subscribe(async info =>
-                        {
-                            Debug.WriteLine($"Reconnection to GameStatus scription happened, type: {info.Type}");
-                            await SubscribeToGameStatus();
-                        });
-
-                        await _client.Start();
-                        await SubscribeToGameStatus();
-
-                    }
-                });
-
-            }
-
-        }
-    }
-
-    private async Task SubscribeToGameStatus()
-    {
-        await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
-        {
-            action = "subscribe",
-            topic = "stream_game_status",
-        })));
-    }
-
-    private async void UnsubscribeGameStatus()
-    {
-        await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
-        {
-            action = "unsubscribe",
-            topic = "stream_game_status",
-        })));
-    }
-
-    private async void HandleSubscriptionToGameStatus(ResponseMessage message)
-    {
-        var recived = JsonSerializer.Deserialize<GameStatusRootobject>(message.ToString());
-        if (Server != null && recived != null && recived.Success)
-        {
-            if (recived.Type == "sub_auth" && Server != null)
-            {
-                await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
-                {
-                    action = "publish",
-                    topic = "stream_game_status",
-                    message = "Give me the the game status",
-                    security_key = recived.SecurityKey,
-                    game_id = Server.GameId,
-                })));
-            }
-            else if (recived.Type == "message")
-            {
-                UpdateGrid(recived);
-            }
-        }
-    }
-
-    private void DisableAllButtons()
-    {
-        for (int row = 0; row < _bingoButtons.GetLength(0); row++)
-        {
-            for (int col = 0; col < _bingoButtons.GetLength(1); col++)
-            {
-                _bingoButtons[row, col].IsEnabled = false;
-            }
-        }
-    }
-
-    /*private async void UpdateMyGameSatus()
-    {
-        if (Server == null) return;
-
-        string endpoint = AppSettings.LocalBaseEndpoint;
-        HttpRequest rec = new($"{endpoint}/get/game/status/{AppSettings.PlayerId}/{Server.GameId}");
-        //HttpRequest rec = new($"{endpoint}/get/game/status/1/1");
-
-        var response = await rec.GetAsync<GameStatusRootobject>();
-
-        if (response != null && response.Success)
-        {
-            for (int row = 0; row < _bingoButtons.GetLength(0); row++)
-            {
-                for (int col = 0; col < _bingoButtons.GetLength(1); col++)
-                {
-                    int number = response.Get(row, col);
-                    _bingoButtons[row, col].Text = number.ToString();
-
-                    SetButtonColor(_bingoButtons[row, col], number);
-                }
-            }
-        }
-    }*/
-
-    private async Task UpdateAllGameSatus()
-    {
-        if (Server == null) return;
-
-        string endpoint = AppSettings.LocalBaseEndpoint;
-        string url;
-        if (Server.PlayerIds != null) url = $"{endpoint}/get/game/status/all/{string.Join(",", Server.PlayerIds)}/{Server.GameId}";
-        else return;
-
-        Debug.WriteLine(url);
-
-        HttpRequest rec = new(url);
-
-        var response = await rec.GetAsync<GameStatusRootobject>();
-        if (response == null || !response.Success) return;
-
-        UpdateGrid(response);
-    }
-
-    private void UpdateGrid(GameStatusRootobject response)
-    {
-        int userId = AppSettings.PlayerId;
-        //int userId = 1;
-        int i = 0;
-        for (int row = 0; row < _bingoButtons.GetLength(0); row++)
-        {
-            for (int col = 0; col < _bingoButtons.GetLength(1); col++)
-            {
-                (int number, bool isHighest) = response.GetNumberAndIsHighest(userId, row, col);
-
-
-                // TBD: bör komma på något bättre sätt att visa om spelaren har högst poäng eller inte för knappen
-                _bingoButtons[row, col].Text = number.ToString();
-                if (isHighest)
-                {
-                    SetButtonColor(_bingoButtons[row, col], number);
+                    buttonViewModel.Score++;
                 }
                 else
                 {
-                    SetButtonColor(_bingoButtons[row, col], -1);
+                    buttonViewModel.Score--;
+                }
+               
+            }
+            else if (result == null)
+            {
+                buttonViewModel.Score--;
+            }
+
+
+            if (Server == null)
+            {
+                // TODO: Bara för testning
+                if (buttonViewModel.Score > 6)
+                {
+                    buttonViewModel.IsHighest = true;
+                }
+                else if (buttonViewModel.Score > 4)
+                {
+                    buttonViewModel.IsHighest = Random.Shared.NextDouble() < 0.7;
+                }
+                else if (buttonViewModel.Score > 2)
+                {
+                    buttonViewModel.IsHighest = Random.Shared.NextDouble() < 0.5;
+                }
+                else
+                {
+                    buttonViewModel.IsHighest = Random.Shared.NextDouble() < 0.3;
                 }
             }
-        }
-    }
 
-    private async Task<bool> AddPlayerToGame()
-    {
-        if (Server == null) return false;
 
-        string endpoint = AppSettings.LocalBaseEndpoint;
-        HttpRequest rec = new($"{endpoint}/add/player/to/game");
-        var response = await rec.PutAsync<ResponseData>(new
-        {
-            player_id = AppSettings.PlayerId,
-            game_id = Server.GameId,
-        });
+            SetButtonColor(buttonViewModel);
+            _buttonViewModel.SetNewQiestion(buttonViewModel);
 
-        if (response == null)
-        {
-            await DisplayAlert("Alert", "Somthing with ther server is wrong", "OK");
-            return false;
-        }
-        return true;
-    }
-
-    private async void StartGameClicked(object sender, EventArgs e)
-    {
-        string endpoint = AppSettings.LocalBaseEndpoint;
-        HttpRequest rec = new($"{endpoint}/set/game/as/running");
-
-        if (Server != null)
-        {
-            await rec.PostAsync<ResponseData>(new
+            bool didIWin = isBingo();
+            if (Server != null)
             {
-                game_id = Server.GameId
-            });
-        }
-    }
-
-    private async void CreateButtons()
-    {
-        Quiz? quiz = null;
-        string fileName = AppSettings.QuizJsonFileName;
-        if (await FileSystem.Current.AppPackageFileExistsAsync(fileName))
-        {
-            quiz = await Helpers.ReadJsonFile<Quiz>(fileName);
-        }
-
-        if (quiz != null && quiz.Results != null)
-        {
-            List<Result> results;
-            string selectedCat = AppSettings.QuizCategorie;
-            if (selectedCat == "All")
-            {
-                results = quiz.Results;
-            }
-            else
-            {
-                results = quiz.Results.Where(r => r.Category.StartsWith(AppSettings.QuizCategorie)).ToList();
-            }
-
-            for (int row = 0; row < 4; row++)
-            {
-                for (int col = 0; col < 4; col++)
+                int winner = await SendStatusUpdateAsync(buttonViewModel.Row, buttonViewModel.Col, buttonViewModel.Score, didIWin);
+                if (winner > 0) // Någon annan än denna spelare vann
                 {
-                    QuizButton btn = new QuizButton
+                    var winnerResult = await this.ShowPopupAsync(new WinningPopup(await Helpers.GetNameAsync(winner)), CancellationToken.None);
+                    if (winnerResult is bool)
                     {
-                        Text = "0",
-                    };
-
-                    btn.ClassId = $"{row}-{col}";
-
-                    btn.Clicked += QuestionBtn_Clicked;
-
-                    Result result = results[Random.Shared.Next(results.Count)];
-                    results.Remove(result);
-                    ToolTipProperties.SetText(btn, $"{result.Category} ({result.Difficulty})");
-
-                    btn.QUestionAndAnswer = result;
-
-                    gameGrid.Add(btn, col, row);
-
-                    _bingoButtons[row, col] = btn;
-                }
-            }
-        }
-        else
-        {
-            await DisplayAlert("Alert", "Could not find any questions for you", "OK");
-        }
-
-    }
-
-    private void QuestionBtn_Clicked(object? sender, EventArgs e)
-    {
-        if (ActiveBingoButton != null) return;
-
-
-        if (sender is QuizButton questionBtn)
-        {
-            Result? result = questionBtn.QUestionAndAnswer;
-            if (result != null)
-            {
-                Label label = new()
-                {
-                    Text = result.Question,
-                };
-
-                questionGrid.Add(label, 0, 0);
-                questionGrid.SetColumnSpan(label, 2);
-
-                List<string> answers = result.IncorrectAnswers;
-                answers.Add(result.CorrectAnswer);
-                answers.Shuffle();
-
-                int rows = 2, cols = 2;
-                if (answers.Count < 4)
-                {
-                    rows = 1;
-                }
-
-                int index = 0;
-                for (int row = 1; row <= rows; row++)
-                {
-                    for (int col = 0; col < cols; col++)
-                    {
-                        Button btn = new Button
-                        {
-                            Text = answers[index],
-                        };
-
-                        // TODO: Endast för att underlätta vid testning
-                        if (result.CorrectAnswer == answers[index])
-                        {
-                            btn.BackgroundColor = Colors.Gold;
-                        }
-
-                        btn.Clicked += Answer_ClickedAsync;
-                        questionGrid.Add(btn, col, row);
-
-                        index++;
-                    }
-                }
-                ActiveBingoButton = new KeyValuePair<string, Button>(result.CorrectAnswer, questionBtn);
-            }
-        }
-    }
-
-    private async void Answer_ClickedAsync(object? sender, EventArgs e)
-    {
-        if (sender is Button btn)
-        {
-            string text = btn.Text;
-            //Debug.WriteLine(text);
-            questionGrid.Clear();
-
-            if (ActiveBingoButton != null)
-            {
-                Button activeBtn = ActiveBingoButton.Value.Value;
-
-                if (int.TryParse(activeBtn.Text, out int number))
-                {
-                    if (ActiveBingoButton.Value.Key == text) number++;
-                    else number--;
-
-                    activeBtn.Text = number.ToString();
-
-                    SetButtonColor(activeBtn, number);
-
-                    
-                    string[] parts = activeBtn.ClassId.Split('-');
-                    int row = int.Parse(parts[0]);
-                    int col = int.Parse(parts[1]);
-                    if (Server != null) 
-                    {
-                        int? winner = await SendStatusUpdateAsync(row, col, number);
-
-                        if (winner != null)
-                        {
-                            DisableAllButtons();
-
-                            string playerName = await GetNameAsync(winner);
-                            Debug.WriteLine(playerName + " har vunnit....");
-                            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                            await Toast.Make($"'{playerName}' har vunnit!!!", ToastDuration.Long).Show(cts.Token);
-                            ActiveBingoButton = null;
-                            return;
-                        }
-                    }
-
-                    if (CheckIfBingo())
-                    {
-                        Debug.WriteLine("Japp jag vann!!!");
-
-                        DisableAllButtons();
-
-                        if (Server != null) SetWinner(Server.GameId ?? 0, AppSettings.PlayerId);
-
-                        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                        await Toast.Make("Grattis du vann!!!", ToastDuration.Long).Show(cts.Token);
+                        await Unsubscribe();
+                        await Navigation.PopAsync();
                     }
                 }
             }
 
-            ActiveBingoButton = null;
-        }
-    }
-
-    private async void SetWinner(int gameId, int playerId)
-    {
-        if (Server != null)
-        {
-            string endpoint = AppSettings.LocalBaseEndpoint;
-            HttpRequest rec = new($"{endpoint}/set/game/winner");
-            var response = await rec.PutAsync<ResponseData>(new
+            if (didIWin) // jag vann
             {
-                player_id = playerId,
-                game_id = gameId,
-            });
-        } 
-    }
-
-    private void SetButtonColor(Button button, int number)
-    {
-        
-        if (number > 0)
-        {
-            button.BackgroundColor = _winningColor;
-            button.TextColor = Colors.Black;
-        }
-        else if (number == 0)
-        {
-            button.BackgroundColor = null;
-        }
-        else
-        {
-            button.BackgroundColor = Colors.Red;
-            button.TextColor = Colors.White;
+                var winnerResult = await this.ShowPopupAsync(new WinningPopup(), CancellationToken.None);
+                if (winnerResult is bool)
+                {
+                    if (Server != null) await Unsubscribe();
+                    await Navigation.PopAsync();
+                }
+            }
         }
     }
 
-    private async Task<string> GetNameAsync(int? playerId)
+    private bool isBingo()
     {
-        string endpoint = AppSettings.LocalBaseEndpoint;
-        HttpRequest rec = new($"{endpoint}/player/name?player_id={playerId}");
-
-        var result = await rec.GetAsync<ResponseData>();
-
-        if (result != null && result.PlayerName != null)
+        ButtonViewModel[,] buttons = new ButtonViewModel[4, 4];
+        foreach (var button in _buttonViewModel.Buttons)
         {
-            return result.PlayerName;
+            buttons[button.Row, button.Col] = button;
         }
-        return string.Empty;
-    }
 
-    private async Task<int?> SendStatusUpdateAsync(int row, int col, int value, bool winningMove = false)
-    {
-        if (Server == null) return null;
-
-        string endpoint = AppSettings.LocalBaseEndpoint;
-        HttpRequest rec = new($"{endpoint}/update/game");
-        var result = await rec.PostAsync<ResponseData>(new
-        {
-            player_id = AppSettings.PlayerId,
-            game_id = Server.GameId,
-            grid_row = row,
-            grid_col = col,
-            num = value,
-            winning_move = winningMove,
-        });
-
-        if (result == null) return null;
-
-        return result.Winner;
-    }
-
-    public class ResponseData
-    {
-        [JsonPropertyName("success")]
-        public bool Success { get; set; }
-
-        [JsonPropertyName("player_count")]
-        public int PlayerCount { get; set; }
-
-        [JsonPropertyName("type")]
-        public string? Type { get; set; }
-        [JsonPropertyName("topic")]
-        public string? Topic { get; set; }
-        [JsonPropertyName("security_key")]
-        public string? SecurityKey { get; set; }
-
-        [JsonPropertyName("player_ids")]
-        public List<int> PlayerIds { get; set; } = new();
-
-        [JsonPropertyName("is_running")]
-        public bool IsRunning { get; set; }
-
-        [JsonPropertyName("winner")]
-        public int? Winner { get; set; }
-
-        [JsonPropertyName("player_name")]
-        public string? PlayerName { get; set; }
-    }
-
-    private bool CheckIfBingo()
-    {
-        Button button1;
-        Button button2;
-        Button button3;
-        Button button4;
+        ButtonViewModel button1;
+        ButtonViewModel button2;
+        ButtonViewModel button3;
+        ButtonViewModel button4;
         // Kontrollera horisontellt
         for (int row = 0; row < 4; row++)
         {
-            button1 = _bingoButtons[row, 0];
-            button2 = _bingoButtons[row, 1];
-            button3 = _bingoButtons[row, 2];
-            button4 = _bingoButtons[row, 3];
+            button1 = buttons[row, 0];
+            button2 = buttons[row, 1];
+            button3 = buttons[row, 2];
+            button4 = buttons[row, 3];
 
             if (
                 button1.BackgroundColor == _winningColor && button2.BackgroundColor == _winningColor &&
@@ -676,10 +180,10 @@ public partial class ButtonsPage : ContentPage, IDisposable
         // Kontrollera vertikalt
         for (int col = 0; col < 4; col++)
         {
-            button1 = _bingoButtons[0, col];
-            button2 = _bingoButtons[1, col];
-            button3 = _bingoButtons[2, col];
-            button4 = _bingoButtons[3, col];
+            button1 = buttons[0, col];
+            button2 = buttons[1, col];
+            button3 = buttons[2, col];
+            button4 = buttons[3, col];
 
             if (
                 button1.BackgroundColor == _winningColor && button2.BackgroundColor == _winningColor &&
@@ -691,10 +195,10 @@ public partial class ButtonsPage : ContentPage, IDisposable
         }
 
         // Kontrollera diagonalt (neråt höger)
-        button1 = _bingoButtons[0, 0];
-        button2 = _bingoButtons[1, 1];
-        button3 = _bingoButtons[2, 2];
-        button4 = _bingoButtons[3, 3];
+        button1 = buttons[0, 0];
+        button2 = buttons[1, 1];
+        button3 = buttons[2, 2];
+        button4 = buttons[3, 3];
 
         if (
             button1.BackgroundColor == _winningColor && button2.BackgroundColor == _winningColor &&
@@ -704,10 +208,10 @@ public partial class ButtonsPage : ContentPage, IDisposable
             return true;
         }
         // Kontrollera diagonalt (neråt vänster)
-        button1 = _bingoButtons[0, 3];
-        button2 = _bingoButtons[1, 2];
-        button3 = _bingoButtons[2, 1];
-        button4 = _bingoButtons[3, 0];
+        button1 = buttons[0, 3];
+        button2 = buttons[1, 2];
+        button3 = buttons[2, 1];
+        button4 = buttons[3, 0];
 
         if (
             button1.BackgroundColor == _winningColor && button2.BackgroundColor == _winningColor &&
@@ -720,34 +224,394 @@ public partial class ButtonsPage : ContentPage, IDisposable
         return false;
     }
 
-    protected override bool OnBackButtonPressed()
+    private Color _winningColor = Colors.Green;
+
+    private void SetButtonColor(ButtonViewModel model)
     {
-        Dispose();
-        base.OnBackButtonPressed();
-        return false;
-    }
-
-    public async void Dispose()
-    {
-        UnsubscribeToServers();
-
-        UnsubscribeGameStatus();
-
-        if (_client.IsRunning)
+        
+        if (model.Score > 0 && model.IsHighest)
         {
-            await Task.Delay(50);
-            await _client.Stop(WebSocketCloseStatus.NormalClosure, $"Closed in server by the {this.GetType().Name} client");
-            _client.Dispose();
+            model.BackgroundColor = _winningColor;
+        } 
+        else if (model.Score == 0 && model.IsHighest)
+        {
+            model.BackgroundColor = null;
+        }
+        else
+        {
+            model.BackgroundColor = Colors.Red;
         }
     }
+
+    private async Task<bool> AddPlayerToGame()
+    {
+        if (Server == null) return false;
+
+        string endpoint = AppSettings.LocalBaseEndpoint;
+        HttpRequest rec = new($"{endpoint}/add/player/to/game");
+        var response = await rec.PutAsync<GameStatusRootobject>(new
+        {
+            player_id = AppSettings.PlayerId,
+            game_id = Server.GameId,
+        });
+
+        if (response == null)
+        {
+            await DisplayAlert("Alert", "Somthing with ther server is wrong", "OK");
+            return false;
+        }
+        return true;
+    }
+
+    private async void ContentPageLoaded(object? sender, EventArgs e)
+    {
+        bool playerAdded = await AddPlayerToGame();
+        if (Server == null || !playerAdded) 
+        {
+            await Navigation.PopAsync();
+            return;
+        }
+
+        var popup = new OverlayPopup(Server);
+        popup.CanBeDismissedByTappingOutsideOfPopup = false;
+        var result = await this.ShowPopupAsync(popup, CancellationToken.None);
+
+        if (result is bool boolResult && boolResult)
+        {
+            Debug.WriteLine($"boolResult: {boolResult.ToString()}"); // Den här texten ska alldig skrivas ut
+        }
+        else if (result is GameStatusRootobject model)
+        {
+            List<Button> buttons = [player2Button, player3Button, player4Button];
+
+            List<int> playerIds = model.PlayerIds.Take(4).ToList();
+
+            //Debug.WriteLine($"är det detta... player_ids: {string.Join(", ", playerIds)}");
+
+            playerIds.Remove(AppSettings.PlayerId);
+            player1Button.Text = AppSettings.PlayerName;
+
+            for (int i = 0; i < playerIds.Count; i++)
+            {
+                Button button = buttons[i];
+                if (!button.IsVisible)
+                {
+                    button.IsVisible = true;
+                    string name = await Helpers.GetNameAsync(playerIds[i]);
+                    Debug.WriteLine($"Name: {name}, ID: {playerIds[i]}");
+                    button.Text = name;
+                }
+            }
+
+            _client.MessageReceived.Subscribe(HandleSubscription);
+
+            _client.ReconnectTimeout = TimeSpan.FromSeconds(30);
+            _client.ReconnectionHappened.Subscribe(async info =>
+            {
+                Debug.WriteLine($"Reconnection to new server scription happened, type: {info.Type}");
+                await Subscribe();
+            });
+
+            await _client.Start();
+            await Subscribe();
+
+        }
+        else
+        {
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            await Toast.Make("Det är här det blir knas!").Show(cts.Token);
+            await Navigation.PopAsync();
+        }
+
+    }
+
+    private async Task Subscribe()
+    {
+        await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
+        {
+            action = "subscribe",
+            topic = "waiting_for_server",
+        })));
+    }
+
+    private async Task Unsubscribe()
+    {
+        await Task.Run(async () => {
+            _client.Send(JsonSerializer.Serialize(new
+            {
+                action = "unsubscribe",
+                topic = "waiting_for_server",
+            }));
+            await _client.Stop(WebSocketCloseStatus.NormalClosure, $"Closed in server by the {this.GetType().Name} client");
+        });
+    }
+
+    private async void HandleSubscription(ResponseMessage message)
+    {
+        var recived = JsonSerializer.Deserialize<GameStatusRootobject>(message.ToString());
+
+        if (recived != null)
+        {
+            if (recived.Type == "sub_auth" && Server != null)
+            {
+                await Task.Run(() => _client.Send(JsonSerializer.Serialize(new
+                {
+                    action = "publish",
+                    topic = "waiting_for_server",
+                    message = "Give me the player count",
+                    security_key = recived.SecurityKey,
+                    game_id = Server.GameId,
+                })));
+            }
+            else if (recived.Type == "message")
+            {
+                // TODO: uppdatera IsHighest för varje knapp som har högre scor än 0
+                int playerId = AppSettings.PlayerId;
+                foreach (var button in _buttonViewModel.Buttons)
+                {
+                    button.IsHighest = recived.IsHighest(playerId, button.Row, button.Col);
+                    SetButtonColor(button);
+                }
+            }
+        }
+    }
+
+    private async Task<int> SendStatusUpdateAsync(int row, int col, int value, bool winningMove = false)
+    {
+        if (Server == null) return 0;
+
+        string endpoint = AppSettings.LocalBaseEndpoint;
+        HttpRequest rec = new($"{endpoint}/update/game");
+        var result = await rec.PostAsync<GameStatusRootobject>(new
+        {
+            player_id = AppSettings.PlayerId,
+            game_id = Server.GameId,
+            grid_row = row,
+            grid_col = col,
+            num = value,
+            winning_move = winningMove,
+        });
+
+        if (result == null) return 0;
+
+        return result.Winner?? 0;
+    }
 }
 
-
-public class QuizButton : Button
+public class ButtonViewModel : INotifyPropertyChanged
 {
-    public Result? QUestionAndAnswer { get; set; } = null;
+    public event PropertyChangedEventHandler? PropertyChanged;
+    public ObservableCollection<ButtonViewModel> Buttons { get; set; }
+
+	private int _score;
+	public int Score 
+    {
+        get => _score;
+        set
+        {
+            if (_score != value)
+            {
+                _score = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    private bool _isHighest = false;
+    public bool IsHighest
+    {
+        get => _isHighest;
+        set
+        {
+            if (_isHighest != value)
+            {
+                _isHighest = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    private int _row;
+    public int Row
+    {
+        get => _row;
+        set
+        {
+            if (_row != value)
+            {
+                _row = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    private int _col;
+    public int Col
+    {
+        get => _col;
+        set
+        {
+            if (_col != value)
+            {
+                _col = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    private Result _questionAndAnswer = new();
+    public Result QuestionAndAnswer
+    {
+        get => _questionAndAnswer;
+        set
+        {
+            if (_questionAndAnswer != value)
+            {
+                _questionAndAnswer = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    private string _toolTip = string.Empty;
+    public string ToolTip
+    {
+        get => _toolTip;
+        set
+        {
+            if (_toolTip != value)
+            {
+                _toolTip = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    private Color? _backgroundColor;
+    public Color? BackgroundColor
+    {
+        get => _backgroundColor;
+        set
+        {
+            if (_backgroundColor != value)
+            {
+                _backgroundColor = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    private Color _txtColor;
+    public Color TxtColor
+    {
+        get {
+            if (BackgroundColor == ColorP1) return Colors.Black;
+            if (BackgroundColor == ColorP2) return Colors.White;
+            if (BackgroundColor == ColorP3) return Colors.White;
+            if (BackgroundColor == ColorP4) return Colors.White;
+            if (BackgroundColor == Colors.Red) return Colors.White;
+            if (BackgroundColor == Colors.Green) return Colors.White;
+
+            return Colors.Black;
+                    
+            } 
+    }
+
+    public Color ColorWin = Colors.Lime;
+
+    public Color ColorP1 = Colors.Wheat;
+    public Color ColorP2 = Colors.Blue;
+    public Color ColorP3 = Colors.Red;
+    public Color ColorP4 = Colors.Yellow;
+
+    private List<Result> _questions = [];
+
+    public ButtonViewModel()
+	{
+        Buttons = [];
+
+        BackgroundColor = ColorP1;
+    }
+
+    public async Task CreateButtonsAsync()
+    {
+        Quiz? quiz = null;
+        string fileName = AppSettings.QuizJsonFileName;
+        if (await FileSystem.Current.AppPackageFileExistsAsync(fileName))
+        {
+            quiz = await Helpers.ReadJsonFile<Quiz>(fileName);
+        }
+
+        if (quiz != null && quiz.Results != null)
+        {
+            string selectedCat = AppSettings.QuizCategorie;
+            if (selectedCat == "All")
+            {
+                _questions = quiz.Results;
+            }
+            else
+            {
+                _questions = quiz.Results.Where(r => r.Category.StartsWith(AppSettings.QuizCategorie)).ToList();
+            }
+
+            for (int row = 0; row < 4; row++)
+            {
+                for (int col = 0; col < 4; col++)
+                {
+                    Result result = _questions[Random.Shared.Next(_questions.Count)];
+                    _questions.Remove(result);
+
+                    ButtonViewModel model = new();
+                    model.Score = 0;
+                    model.Row = row;
+                    model.Col = col;
+                    model.QuestionAndAnswer = result;
+                    model.ToolTip = $"{result.Category} ({result.Difficulty})";
+                    Buttons.Add(model);
+                }
+            }
+        }
+    }
+
+    public void SetNewQiestion(ButtonViewModel model)
+    {
+        Result result = _questions[Random.Shared.Next(_questions.Count)];
+        _questions.Remove(result);
+        model.QuestionAndAnswer = result;
+    }
+
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 }
 
 
+public class StringToColourConverter : IValueConverter, IMarkupExtension
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is string s)
+        {
+            switch (s)
+            {
+                case "green":
+                    return Colors.Green;
+                case "red":
+                    return Colors.Red;
+            }
+        }
+        return null;
+    }
 
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+
+    public object ProvideValue(IServiceProvider serviceProvider)
+    {
+        return this;
+    }
+}
 

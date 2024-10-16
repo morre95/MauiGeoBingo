@@ -76,7 +76,7 @@ public partial class ServerPage : ContentPage
 
                 var page = Navigation.NavigationStack.LastOrDefault();
                 //await Navigation.PushAsync(new ButtonsPage(server));
-                await Navigation.PushAsync(new ButtonsPage2(server));
+                await Navigation.PushAsync(new ButtonsPage(server));
                 Navigation.RemovePage(page);
             });
         }

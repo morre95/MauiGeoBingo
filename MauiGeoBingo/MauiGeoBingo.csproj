@@ -72,16 +72,25 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Compile Update="Pagaes\ButtonsPage.xaml.cs">
+	    <DependentUpon>ButtonsPage.xaml</DependentUpon>
+	  </Compile>
+	  <Compile Update="Pagaes\__ButtonsPage.xaml.cs">
+	    <DependentUpon>__ButtonsPage.xaml</DependentUpon>
+	  </Compile>
+	</ItemGroup>
+
+	<ItemGroup>
 	  <MauiAsset Update="Resources\Raw\quizDB.json">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </MauiAsset>
 	</ItemGroup>
 
 	<ItemGroup>
-	  <MauiXaml Update="Pagaes\ButtonsPage.xaml">
+	  <MauiXaml Update="Pagaes\__ButtonsPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
-	  <MauiXaml Update="Pagaes\ButtonsPage2.xaml">
+	  <MauiXaml Update="Pagaes\ButtonsPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Pagaes\MapPage.xaml">
@@ -106,6 +115,9 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Popups\QuestionPopup.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Popups\WinningPopup.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	</ItemGroup>
