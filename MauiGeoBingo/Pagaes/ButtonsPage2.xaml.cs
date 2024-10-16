@@ -94,11 +94,11 @@ public partial class ButtonsPage2 : ContentPage
     private void SetButtonColor(ButtonViewModel model)
     {
         
-        if (model.Score > 0)
+        if (model.Score > 0 && model.IsHighest)
         {
             model.BackgroundColor = _winningColor;
         } 
-        else if (model.Score == 0)
+        else if (model.Score == 0 && model.IsHighest)
         {
             model.BackgroundColor = null;
         }
@@ -168,6 +168,7 @@ public partial class ButtonsPage2 : ContentPage
             }
 
             // TODO: Här startar spelet. Så det bör skrivas
+            // Så här bör en prenumeration av server status börja
 
         }
         else
@@ -175,7 +176,29 @@ public partial class ButtonsPage2 : ContentPage
             await Navigation.PopAsync();
         }
 
-    } 
+    }
+
+    private async Task<int?> SendStatusUpdateAsync(int row, int col, int value, bool winningMove = false)
+    {
+        if (Server == null) return null;
+
+        string endpoint = AppSettings.LocalBaseEndpoint;
+        HttpRequest rec = new($"{endpoint}/update/game");
+        // TBD: Det här anropet kanske ska svara med en hel uppdatering
+        var result = await rec.PostAsync<GameStatusRootobject>(new
+        {
+            player_id = AppSettings.PlayerId,
+            game_id = Server.GameId,
+            grid_row = row,
+            grid_col = col,
+            num = value,
+            winning_move = winningMove,
+        });
+
+        if (result == null) return null;
+
+        return result.Winner;
+    }
 }
 
 public class ButtonViewModel : INotifyPropertyChanged
@@ -193,21 +216,19 @@ public class ButtonViewModel : INotifyPropertyChanged
             {
                 _score = value;
                 OnPropertyChanged();
-                // TBD: Bör ses över om detta behövs
-                OnPropertyChanged(nameof(ButtonTxt));
             }
         }
     }
 
-    private string _buttonTxt = string.Empty;
-    public string ButtonTxt
+    private bool _isHighest = true;
+    public bool IsHighest
     {
-        get => IsHighest ? Score.ToString() : _buttonTxt;
+        get => _isHighest;
         set
         {
-            if (_buttonTxt != value)
+            if (_isHighest != value)
             {
-                _buttonTxt = value;
+                _isHighest = value;
                 OnPropertyChanged();
             }
         }
@@ -283,19 +304,7 @@ public class ButtonViewModel : INotifyPropertyChanged
         }
     }
 
-    private bool _isHighest = true;
-    public bool IsHighest
-    {
-        get => _isHighest;
-        set
-        {
-            if (_isHighest != value)
-            {
-                _isHighest = value;
-                OnPropertyChanged();
-            }
-        }
-    }
+    
 
     private Color _txtColor;
     public Color TxtColor

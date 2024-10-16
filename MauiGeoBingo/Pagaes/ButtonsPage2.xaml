@@ -53,7 +53,7 @@
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-                        <Button Text="{Binding ButtonTxt}" ToolTipProperties.Text="{Binding ToolTip}" BackgroundColor="{Binding BackgroundColor}" TextColor="{Binding TxtColor}" Clicked="QuestionButtonClicked" />
+                        <Button Text="{Binding Score}" ToolTipProperties.Text="{Binding ToolTip}" BackgroundColor="{Binding BackgroundColor}" TextColor="{Binding TxtColor}" Clicked="QuestionButtonClicked" />
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>

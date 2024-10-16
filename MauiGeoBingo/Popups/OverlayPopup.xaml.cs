@@ -50,6 +50,18 @@ public partial class OverlayPopup : Popup
         if (GameStatus != null)
         {
             await Unsubscribe();
+
+            string endpoint = AppSettings.LocalBaseEndpoint;
+            HttpRequest rec = new($"{endpoint}/set/game/as/running");
+
+            if (Server != null)
+            {
+                await rec.PostAsync<GameStatusRootobject>(new
+                {
+                    game_id = Server.GameId
+                });
+            }
+
             var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
             await CloseAsync(GameStatus, cts.Token);
         }
@@ -102,9 +114,7 @@ public partial class OverlayPopup : Popup
                 GameStatus = recived;
                 if (recived.IsRunning)
                 {
-                    await Unsubscribe();
-                    var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                    await CloseAsync(GameStatus, cts.Token);
+                    OnOKButtonClicked(new Button(), new EventArgs());
                     return;
                 }
 
