@@ -6,6 +6,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using System.Security.Cryptography;
+using MauiGeoBingo.Helpers;
+
 namespace MauiGeoBingo.Classes
 {
     internal class AppSettings
@@ -74,6 +77,34 @@ namespace MauiGeoBingo.Classes
 
         private static string _baseWSEndpoint => DeviceInfo.Platform == DevicePlatform.Android ? "ws://10.0.2.2:8765" : "ws://127.0.0.1:8765";
         public static string LocalWSBaseEndpoint => _baseWSEndpoint;
+
+
+        private string _googleMapsApiKey = string.Empty;
+        public static string GOOGLE_MAPS_ANDROID_API_KEY => Instance._googleMapsApiKey;
+        public static string GOOGLE_MAPS_IOS_API_KEY => Instance._googleMapsApiKey;
+
+        private const string _encryptionPass = "351b3205-7d66-434b-97ee-63dafcf1e48a";
+
+        private static readonly Lazy<AppSettings> lazy = new Lazy<AppSettings>(() => new AppSettings());
+
+        public static AppSettings Instance { get { return lazy.Value; } }
+
+        private AppSettings()
+        {
+
+            // TODO: Raderar detta innan det går till publikt
+            //_ = EncryptionHelpers.SetAsync("GOOGLE_MAPS_ANDROID_API_KEY", "AIzaSyAdj2XsLd_tRH51mrZatq_cLMsgzk3Qv6Q", _encryptionPass);
+
+            GetVariablesAsync();
+        }
+
+        
+
+        private async void GetVariablesAsync()
+        {
+            string? value = await EncryptionHelpers.GetAsync("GOOGLE_MAPS_ANDROID_API_KEY", _encryptionPass);
+            if (value != null) _googleMapsApiKey = value;
+        }
 
         public void ResetToDefalt()
         {

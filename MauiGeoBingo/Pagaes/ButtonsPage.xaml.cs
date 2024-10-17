@@ -11,6 +11,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using CommunityToolkit.Maui.Alerts;
 using System.Net.WebSockets;
+using MauiGeoBingo.Helpers;
 
 namespace MauiGeoBingo.Pagaes;
 
@@ -127,7 +128,7 @@ public partial class ButtonsPage : ContentPage
                 int winner = await SendStatusUpdateAsync(buttonViewModel.Row, buttonViewModel.Col, buttonViewModel.Score, didIWin);
                 if (winner > 0) // Någon annan än denna spelare vann
                 {
-                    var winnerResult = await this.ShowPopupAsync(new WinningPopup(await Helpers.GetNameAsync(winner)), CancellationToken.None);
+                    var winnerResult = await this.ShowPopupAsync(new WinningPopup(await Helper.GetNameAsync(winner)), CancellationToken.None);
                     if (winnerResult is bool)
                     {
                         await Unsubscribe();
@@ -297,7 +298,7 @@ public partial class ButtonsPage : ContentPage
                 if (!button.IsVisible)
                 {
                     button.IsVisible = true;
-                    string name = await Helpers.GetNameAsync(playerIds[i]);
+                    string name = await Helper.GetNameAsync(playerIds[i]);
                     Debug.WriteLine($"Name: {name}, ID: {playerIds[i]}");
                     button.Text = name;
                 }
@@ -539,7 +540,7 @@ public class ButtonViewModel : INotifyPropertyChanged
         string fileName = AppSettings.QuizJsonFileName;
         if (await FileSystem.Current.AppPackageFileExistsAsync(fileName))
         {
-            quiz = await Helpers.ReadJsonFile<Quiz>(fileName);
+            quiz = await Helper.ReadJsonFile<Quiz>(fileName);
         }
 
         if (quiz != null && quiz.Results != null)

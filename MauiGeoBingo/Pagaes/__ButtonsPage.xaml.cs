@@ -5,6 +5,7 @@ using CommunityToolkit.Maui.Views;
 using MauiGeoBingo.Classes;
 using MauiGeoBingo.Converters;
 using MauiGeoBingo.Extensions;
+using MauiGeoBingo.Helpers;
 using Microsoft.Maui.Graphics;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -390,7 +391,7 @@ public partial class _ButtonsPage : ContentPage, IDisposable
         string fileName = AppSettings.QuizJsonFileName;
         if (await FileSystem.Current.AppPackageFileExistsAsync(fileName))
         {
-            quiz = await Helpers.ReadJsonFile<Quiz>(fileName);
+            quiz = await Helper.ReadJsonFile<Quiz>(fileName);
         }
 
         if (quiz != null && quiz.Results != null)

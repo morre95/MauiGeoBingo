@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Maui.Storage;
+using MauiGeoBingo.Classes;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,14 +11,14 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace MauiGeoBingo.Classes
+namespace MauiGeoBingo.Helpers
 {
-    internal class Helpers
+    internal class Helper
     {
         public static async Task<T?> ReadJsonFile<T>(string filePath)
         {
             string targetFile = Path.Combine(FileSystem.Current.AppDataDirectory, filePath);
-            if (!File.Exists(targetFile)) 
+            if (!File.Exists(targetFile))
             {
                 //Debug.WriteLine($"AppPackageFileExistsAsync({filePath}): {await FileSystem.AppPackageFileExistsAsync(filePath)}");
                 //Debug.WriteLine($"FileSystem.AppDataDirectory        : {FileSystem.AppDataDirectory}");
@@ -27,7 +28,7 @@ namespace MauiGeoBingo.Classes
             }
             else
             {
-                
+
                 Debug.WriteLine($"FileSystem.Current.AppDataDirectory: {targetFile}, File.Exists(): {File.Exists(targetFile)}");
 
                 using FileStream fileStream = File.OpenRead(targetFile);
@@ -107,7 +108,7 @@ namespace MauiGeoBingo.Classes
                 var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
                 await Toast.Make("Något är fel på servern").Show(cts.Token);
             }
-            
+
             return string.Empty;
         }
 

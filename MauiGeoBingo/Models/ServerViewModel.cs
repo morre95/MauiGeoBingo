@@ -322,8 +322,6 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable, IEquatable<S
         );
     }
 
-    
-
     public async void Dispose()
     {
         Unsubscribe();
