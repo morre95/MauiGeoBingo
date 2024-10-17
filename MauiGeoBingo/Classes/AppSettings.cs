@@ -93,7 +93,7 @@ namespace MauiGeoBingo.Classes
         {
 
             // TODO: Raderar detta innan det går till publikt
-            //_ = EncryptionHelpers.SetAsync("GOOGLE_MAPS_ANDROID_API_KEY", "AIzaSyAdj2XsLd_tRH51mrZatq_cLMsgzk3Qv6Q", _encryptionPass);
+            //_ = EncryptionHelpers.SetAsync("GOOGLE_MAPS_ANDROID_API_KEY", "Nyckeln till google map api", _encryptionPass);
 
             GetVariablesAsync();
         }
