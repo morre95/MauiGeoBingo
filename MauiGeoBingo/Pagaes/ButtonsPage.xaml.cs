@@ -103,7 +103,7 @@ public partial class ButtonsPage : ContentPage
                 }
             }
 
-            await _buttonViewModel.StartClient(model.GameId, model.PlayerIds.Take(4).ToList());
+            await _buttonViewModel.StartClient(model.GameId);
         }
         else
         {

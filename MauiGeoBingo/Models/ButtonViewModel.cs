@@ -168,9 +168,8 @@ public class ButtonViewModel : INotifyPropertyChanged
         _client = new WebsocketClient(url);
     }*/
 
-    public async Task StartClient(int gameId, List<int> playerIds)
+    public async Task StartClient(int gameId)
     {
-        _playerIds = playerIds;
         _gameId = gameId;
 
         _client.MessageReceived.Subscribe(HandleSubscription);
@@ -222,8 +221,7 @@ public class ButtonViewModel : INotifyPropertyChanged
                     topic = "stream_game_status",
                     message = "Give me the the game status",
                     security_key = recived.SecurityKey,
-                    game_id = _gameId,
-                    player_ids = _playerIds,
+                    game_id = _gameId
                 }));
             }
             else if (recived.Type == "message")
@@ -241,15 +239,15 @@ public class ButtonViewModel : INotifyPropertyChanged
                     }
                 }
                 else*/
-                // TODO: uppdatera IsHighest för varje knapp som har högre scor än 0
-                
+                    // TODO: uppdatera IsHighest för varje knapp som har högre scor än 0
+
                 foreach (var button in Buttons)
                 {
                     //button.IsHighest = recived.IsHighest(playerId, button.Row, button.Col);
 
                     (int number, bool isHighest) = recived.GetNumberAndIsHighest(playerId, button.Row, button.Col);
 
-                    button.IsHighest = isHighest;
+                    if (number > 0) button.IsHighest = isHighest;
                     //button.Score = number;
 
                     /*if (number > 0)*/ Debug.WriteLine($"GameId: {_gameId}, playerId: {playerId}, button.Row: {button.Row}, button.Col: {button.Col}, Is highest number: {isHighest}, Number: {number}, count: {recived.GameStatus.Count}");
