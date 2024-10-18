@@ -17,18 +17,24 @@ public partial class EditServerPopup : Popup
         Server = server;
 	}
 
-    private async void SaveButtonClicked(object? sender, EventArgs e)
+    private void SaveButtonClicked(object? sender, EventArgs e)
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
 
-        Server.GameName = serverName.Text;
-        await CloseAsync(Server, cts.Token);
+            Server.GameName = serverName.Text;
+            await CloseAsync(Server, cts.Token);
+        });
     }
     
-    private async void CancelButtonClicked(object? sender, EventArgs e)
+    private void CancelButtonClicked(object? sender, EventArgs e)
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
 
-        await CloseAsync(null, cts.Token);
+            await CloseAsync(null, cts.Token);
+        });
     }
 }

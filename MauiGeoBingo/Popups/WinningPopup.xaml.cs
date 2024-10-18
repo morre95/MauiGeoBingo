@@ -17,9 +17,12 @@ public partial class WinningPopup : Popup
         winningText.Text = $"{winner} vann före dig. Men nästa gång är det din tur att vinna.";
     }
 
-    private async void OnOKButtonClicked(object? sender, EventArgs e)
+    private void OnOKButtonClicked(object? sender, EventArgs e)
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        await CloseAsync(true, cts.Token);
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            await CloseAsync(true, cts.Token);
+        });
     }
 }

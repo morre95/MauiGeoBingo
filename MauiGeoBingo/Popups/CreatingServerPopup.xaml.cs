@@ -53,26 +53,32 @@ public partial class CreatingServerPopup : Popup
                 is_map = gameType.SelectedIndex,
             });
 
-            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            MainThread.BeginInvokeOnMainThread(async () => { 
 
-            if (game == null)
-            {
-                //await DisplayAlert("Alert", "No server created", "OK");
-                await Toast.Make("No server created").Show();
-                await CloseAsync(false, cts.Token);
-            }
-            else
-            {
-                await Toast.Make($"You created game: '{gameName.Text}'").Show();
-                await CloseAsync(true, cts.Token);
-            }
+                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+
+                if (game == null)
+                {
+                    //await DisplayAlert("Alert", "No server created", "OK");
+                    await Toast.Make("No server created").Show();
+                    await CloseAsync(false, cts.Token);
+                }
+                else
+                {
+                    await Toast.Make($"You created game: '{gameName.Text}'").Show();
+                    await CloseAsync(true, cts.Token);
+                }
+            });
         }
     }
 
     private async void CancelClicked(object sender, EventArgs e)
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        await CloseAsync(false, cts.Token);
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            await CloseAsync(false, cts.Token);
+        });
     }
 
     private async void OnEntryCompleted(object? sender, EventArgs e)

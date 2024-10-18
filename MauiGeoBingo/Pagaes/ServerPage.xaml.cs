@@ -101,24 +101,6 @@ public partial class ServerPage : ContentPage
         }
     }
 
-    private async void ServerPageLoaded(object sender, EventArgs e)
-    {
-        /*Task task = Task.Run(() =>
-        {
-            MainThread.BeginInvokeOnMainThread(async () =>
-            {
-                activityIndicator.IsVisible = true;
-                await Task.Delay(2500);
-                activityIndicator.IsVisible = false;
-            });
-        });
-        await task;*/
-
-        /*activityIndicator.IsVisible = true;
-        await Task.Delay(2500);
-        activityIndicator.IsVisible = false;*/
-    }
-
     private void ServerPageUnloaded(object sender, EventArgs e)
     {
         _serverViewModel.Dispose();

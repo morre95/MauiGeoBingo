@@ -34,7 +34,8 @@ public class GameStatusRootobject
     [JsonPropertyName("player_name")]
     public string? PlayerName { get; set; }
 
-
+    [JsonPropertyName("game_id")]
+    public int GameId { get; set; }
 
     [JsonPropertyName("all_game_status")]
     [JsonConverter(typeof(AllGameStatusConverter))]
@@ -94,6 +95,7 @@ public class GameStatusRootobject
                 {
                     if (gs.Col == col && gs.Row == row)
                     {
+                        Debug.WriteLine($"is_highest_number: {gs.is_highest_number}, {Convert.ToBoolean(gs.is_highest_number)}");
                         result = gs.IsHighestNumber;
                         break;
                     }

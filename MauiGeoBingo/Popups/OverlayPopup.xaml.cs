@@ -62,8 +62,11 @@ public partial class OverlayPopup : Popup
                 });
             }
 
-            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            await CloseAsync(GameStatus, cts.Token);
+            MainThread.BeginInvokeOnMainThread(async () => 
+            { 
+                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                await CloseAsync(GameStatus, cts.Token);
+            });
         }
     }
 

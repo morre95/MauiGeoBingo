@@ -1,4 +1,5 @@
-﻿using MauiGeoBingo.Classes;
+﻿using CommunityToolkit.Maui.Alerts;
+using MauiGeoBingo.Classes;
 using Microsoft.Maui.Controls;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -17,6 +18,7 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable, IEquatable<S
     private int? _gameId;
     private int? _numberOfPlayers;
     private bool _isMyServer;
+    private bool _isNotFull;
     private DateTime? _created;
     private bool _isMeAllowedToPlay;
     private List<int>? _playerIds;
@@ -68,6 +70,19 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable, IEquatable<S
             if (_isMyServer != value)
             {
                 _isMyServer = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public bool IsNotFull
+    {
+        get => _isNotFull;
+        set
+        {
+            if (_isNotFull != value)
+            {
+                _isNotFull = value;
                 OnPropertyChanged();
             }
         }
@@ -190,7 +205,7 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable, IEquatable<S
         }
         else if (recived.Type == "message")
         {
-            //Debug.WriteLine($"Websocket message({++_msgCount}): {message},\nServer count: {recived.Servers.Count}");
+            //Debug.WriteLine($"Websocket message({++_msgCount}): {message},\nrecived.Servers.Count: {recived.Servers.Count}\nServers.Count:         {Servers.Count}");
             if (++_msgCount == 1)
             {
                 foreach (var server in recived.Servers)
@@ -210,13 +225,12 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable, IEquatable<S
                             if (viewServer.GameId.Equals(server.GameId) && !viewServer.Equals(server))
                             {
                                 // TBD: Det här fungerar. Men kanske onödigt i det här skedet att readera hela raden och lägga till den igen när det här borde fungera
-                                /*GameName = server.GameName;
-                                NumberOfPlayers = server.NumberOfPlayers;*/
                                 ServerViewModel serverToInsert = new()
                                 {
                                     GameName = server.GameName,
                                     Created = server.Created,
                                     NumberOfPlayers = server.NumberOfPlayers,
+                                    IsNotFull = server.NumberOfPlayers <= 4,
                                     GameId = server.GameId,
                                     IsMyServer = server.IsMyServer,
                                     _isMap = server.IsMap,
@@ -224,8 +238,6 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable, IEquatable<S
                                 };
                                 int index = Servers.IndexOf(viewServer);
                                 serverToAddDict.Add(index, serverToInsert);
-
-
                             }
                         }
                         foreach (var kvp in serverToAddDict)
@@ -248,41 +260,19 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable, IEquatable<S
             } 
             else if (recived.Servers.Count < Servers.Count)
             {
-                var delResult = Servers.Where(s => recived.Servers.All(s2 => s2.GameId != s.GameId)).ToList();
-                Debug.WriteLine($"Japp det ska raderas här. Det är {delResult.Count}st som ska bort");
-                foreach (var server in delResult)
+                MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    if (server != null)
+                    var delResult = Servers.Where(s => recived.Servers.All(s2 => s2.GameId != s.GameId)).ToList();
+                    Debug.WriteLine($"Japp det ska raderas här. Det är {delResult.Count}st som ska bort");
+                    foreach (var server in delResult)
                     {
-                        Debug.WriteLine($"Här ska {server.GameName} raderas");
-                        Servers.Remove(server);
+                        if (server != null)
+                        {
+                            Debug.WriteLine($"Här ska {server.GameName} raderas");
+                            Servers.Remove(server);
+                        }
                     }
-                }
-
-
-                /*HashSet<ServerViewModel> hashSet = new();
-                if (Servers.Any(r => !hashSet.Add(r)))
-                {
-                    Debug.WriteLine("Japp det finns dubbletter"); 
-                }*/
-
-
-
-                /*// Kolla om det finns dubbletter
-                var query = Servers.GroupBy(x => x).Where(g => g.Count() > 1).Select(y => y.Key).ToList();
-                Debug.WriteLine($"Det finns {query.Count}st dubletter");
-                foreach (var server in query)
-                {
-                    if (server != null)
-                    {
-                        Debug.WriteLine($"Här ska {server.GameName} raderas");
-                        Servers.Remove(server);
-                    }
-                }
-
-                var distinct = Servers.Distinct().ToList();
-                Debug.WriteLine($"Det finns {distinct.Count}st unika och {Servers.Count}st totalt och {recived.Servers.Count}st motagna");*/
-
+                });
             }
             OnPropertyChanged(nameof(Servers));
         }
@@ -298,6 +288,7 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable, IEquatable<S
                 GameName = server.GameName,
                 Created = server.Created,
                 NumberOfPlayers = server.NumberOfPlayers,
+                IsNotFull = server.NumberOfPlayers <= 4,
                 GameId = server.GameId,
                 IsMyServer = server.IsMyServer,
                 _isMap = server.IsMap,
@@ -311,27 +302,33 @@ public class ServerViewModel : INotifyPropertyChanged, IDisposable, IEquatable<S
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
-    private async void Unsubscribe()
+    private void Unsubscribe()
     {
-        await Task.Run(async () => 
-            _client.Send(JsonSerializer.Serialize(new
-            {
-                action = "unsubscribe",
-                topic = "new_servers",
-            }))
-        );
+        _client.Send(JsonSerializer.Serialize(new
+        {
+            action = "unsubscribe",
+            topic = "new_servers",
+        }));
     }
 
-    public async void Dispose()
+    public void Dispose()
     {
-        Unsubscribe();
-
-        if (_client.IsRunning) 
+        MainThread.BeginInvokeOnMainThread(async () => 
         {
-            await Task.Delay(150);
-            await _client.Stop(WebSocketCloseStatus.NormalClosure, $"Closed in server by the {this.GetType().Name} client");
-            _client.Dispose();
-        }
+            Unsubscribe();
+
+            if (_client.IsRunning)
+            {
+                await Task.Delay(150);
+
+                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                await Toast.Make("new server scription stopped").Show(cts.Token);
+
+                await _client.Stop(WebSocketCloseStatus.NormalClosure, $"Closed in server by the {this.GetType().Name} client");
+                _client.Dispose();
+            }
+        });
+       
     }
 
     public bool Equals(Server? other)

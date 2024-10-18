@@ -52,21 +52,24 @@ public partial class QuestionPopup : Popup
         }
     }
 
-    private async void AnswerClicked(object? sender, EventArgs e)
+    private void AnswerClicked(object? sender, EventArgs e)
     {
         if (sender is Button button)
         {
-            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            if (button.Text == _question.CorrectAnswer)
+            MainThread.BeginInvokeOnMainThread(async () =>
             {
-                //Debug.WriteLine("Japp det är korrekt");
-                await CloseAsync(true, cts.Token);
-            }
-            else
-            {
-                //Debug.WriteLine("Nej det är fel");
-                await CloseAsync(false, cts.Token);
-            }
+                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                if (button.Text == _question.CorrectAnswer)
+                {
+                    //Debug.WriteLine("Japp det är korrekt");
+                    await CloseAsync(true, cts.Token);
+                }
+                else
+                {
+                    //Debug.WriteLine("Nej det är fel");
+                    await CloseAsync(false, cts.Token);
+                }
+            });
         }
     }
 }

@@ -29,31 +29,6 @@ namespace MauiGeoBingo
             BindingContext = _mainPageViewModel;
 
             SetName();
-
-
-
-            /*if (!AppSettings.TryAddEnv("GOOGLE_MAPS_ANDROID_IOS_API_KEY", "AIzaSyAdj2XsLd_tRH51mrZatq_cLMsgzk3Qv6Q", EnvironmentVariableTarget.User))
-            {
-                Debug.WriteLine("******************* Nej det gick inte att sätta env varibeln ****************************");
-            }
-            else
-            {
-                Debug.WriteLine("******************* Jipppi det gick att sätta env varibeln ****************************");
-            }
-
-            Debug.WriteLine("********************* AppSettings.GOOGLE_MAPS_ANDROID_API_KEY: " + AppSettings.GOOGLE_MAPS_ANDROID_API_KEY + " ********************************************");*/
-
-            //_ = SecureStorage.Default.SetAsync("GOOGLE_MAPS_ANDROID_API_KEY", "AIzaSyAdj2XsLd_tRH51mrZatq_cLMsgzk3Qv6Q");
-        }
-
-        public static void TryAddEnv(string environment, Func<string?> func, out bool isExist)
-        {
-            var value = Environment.GetEnvironmentVariable(environment);
-            isExist = value == null;
-            if (isExist)
-            {
-                Environment.SetEnvironmentVariable(environment, func.Invoke());
-            }
         }
 
         private async void SetName()
@@ -76,7 +51,7 @@ namespace MauiGeoBingo
         {
             var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
             await Toast.Make("Ingen kartsida på plats än!!!").Show(cts.Token);
-            await Navigation.PushAsync(new MapPage());
+            //await Navigation.PushAsync(new MapPage());
         }
 
         private async void ButtonsClicked(object sender, EventArgs e)
