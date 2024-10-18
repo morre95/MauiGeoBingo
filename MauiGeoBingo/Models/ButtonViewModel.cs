@@ -359,6 +359,41 @@ public class ButtonViewModel : INotifyPropertyChanged
         return result.Winner ?? 0;
     }
 
+
+   public async Task UpdateAllGameSatus(int gameId, List<int> playerIds)
+    {
+        string endpoint = AppSettings.LocalBaseEndpoint;
+        string url = $"{endpoint}/get/game/status/all/{string.Join(",", playerIds)}/{gameId}";
+
+        Debug.WriteLine(url);
+
+        HttpRequest rec = new(url);
+
+        var recived = await rec.GetAsync<GameStatusRootobject>();
+        if (recived == null || !recived.Success) return;
+
+        int playerId = AppSettings.PlayerId;
+
+        foreach (var button in Buttons)
+        {
+            //button.IsHighest = recived.IsHighest(playerId, button.Row, button.Col);
+
+            (int number, bool isHighest) = recived.GetNumberAndIsHighest(playerId, button.Row, button.Col);
+
+            if (number != 0) 
+            {
+                button.IsHighest = isHighest;
+                button.Score = number;
+            }
+
+            /*if (number > 0)*/
+            Debug.WriteLine($"GameId: {_gameId}, playerId: {playerId}, button.Row: {button.Row}, button.Col: {button.Col}, Is highest number: {isHighest}, Number: {number}, count: {recived.GameStatus.Count}");
+
+            SetButtonColor(button);
+        }
+    }
+
+
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

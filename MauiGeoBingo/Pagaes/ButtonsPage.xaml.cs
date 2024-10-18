@@ -82,9 +82,13 @@ public partial class ButtonsPage : ContentPage
         }
         else if (result is GameStatusRootobject model)
         {
-            List<Button> buttons = [player2Button, player3Button, player4Button];
+            List<int> playerIds = model.PlayerIds;
+            await _buttonViewModel.UpdateAllGameSatus(model.GameId, playerIds);
 
-            List<int> playerIds = model.PlayerIds.Take(4).ToList();
+
+            List <Button> buttons = [player2Button, player3Button, player4Button];
+
+            playerIds = playerIds.Take(4).ToList();
 
             //Debug.WriteLine($"är det detta... player_ids: {string.Join(", ", playerIds)}");
 
