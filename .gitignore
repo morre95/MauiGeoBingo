@@ -363,3 +363,5 @@ MigrationBackup/
 FodyWeavers.xsd
 /MauiGeoBingo/startBackend.bat
 /MauiGeoBingo/editDB.bat
+/flaskGeoBingoServer/.idea
+/flaskGeoBingoServer/database.db
