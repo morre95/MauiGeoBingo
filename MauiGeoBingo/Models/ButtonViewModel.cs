@@ -214,6 +214,7 @@ public class ButtonViewModel : INotifyPropertyChanged
             //Debug.WriteLine($"recived.Type: {recived.Type}, recived.Winner: {recived.Winner}");
             if (recived.Type == "sub_auth")
             {
+                // TODO: publish svaret bör köras i en Task.Run()
                 Debug.WriteLine($"GameId: {_gameId}, recived.SecurityKey: {recived.SecurityKey}");
                 _client.Send(JsonSerializer.Serialize(new
                 {
