@@ -365,3 +365,4 @@ FodyWeavers.xsd
 /MauiGeoBingo/editDB.bat
 /flaskGeoBingoServer/.idea
 /flaskGeoBingoServer/database.db
+/flaskGeoBingoServer/sqlite3.exe
