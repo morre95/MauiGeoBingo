@@ -33,7 +33,15 @@ namespace MauiGeoBingo
 
         private async void SetName()
         {
-            string name = await Helper.GetNameAsync(AppSettings.PlayerId);
+            int playerId = AppSettings.PlayerId;
+            while (playerId <= 0)
+            {
+                await Helper.SavePlayerName(AppSettings.PlayerName);
+                playerId = AppSettings.PlayerId;
+                await Task.Delay(10);
+            }
+
+            string name = await Helper.GetNameAsync(playerId);
             if (name != string.Empty)
             {
                 AppSettings.PlayerName = name;

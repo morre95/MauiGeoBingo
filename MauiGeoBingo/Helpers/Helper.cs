@@ -15,21 +15,47 @@ namespace MauiGeoBingo.Helpers
 {
     internal class Helper
     {
+
+        public static async Task<T?> GetJson<T>(string fileName)
+        {
+            try
+            {
+#if ANDROID
+        using var assetStream = Android.App.Application.Context.Assets.Open(fileName);
+        using var reader = new StreamReader(assetStream);
+        var jsonContent = await reader.ReadToEndAsync();
+        return JsonSerializer.Deserialize<T>(jsonContent);
+#else
+                using Stream fileStream = await FileSystem.Current.OpenAppPackageFileAsync(fileName);
+                return await JsonSerializer.DeserializeAsync<T>(fileStream);
+#endif
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error accessing file: {ex.Message}");
+                return default;
+            }
+        }
+
         public static async Task<T?> ReadJsonFile<T>(string filePath)
         {
             string targetFile = Path.Combine(FileSystem.Current.AppDataDirectory, filePath);
             if (!File.Exists(targetFile))
             {
-                //Debug.WriteLine($"AppPackageFileExistsAsync({filePath}): {await FileSystem.AppPackageFileExistsAsync(filePath)}");
-                //Debug.WriteLine($"FileSystem.AppDataDirectory        : {FileSystem.AppDataDirectory}");
-                //Debug.WriteLine($"FileSystem.Current.AppDataDirectory: {FileSystem.Current.AppDataDirectory}");
+                Debug.WriteLine($"AppPackageFileExistsAsync({filePath}): {await FileSystem.Current.AppPackageFileExistsAsync(filePath)}");
+                Debug.WriteLine($"FileSystem.AppDataDirectory        : {FileSystem.AppDataDirectory}");
+                Debug.WriteLine($"FileSystem.Current.AppDataDirectory: {FileSystem.Current.AppDataDirectory}");
                 using Stream fileStream = await FileSystem.Current.OpenAppPackageFileAsync(filePath);
                 return await JsonSerializer.DeserializeAsync<T>(fileStream);
             }
             else
             {
 
+                Debug.WriteLine("*******************************************************************************");
+                Debug.WriteLine("*******************************************************************************");
                 Debug.WriteLine($"FileSystem.Current.AppDataDirectory: {targetFile}, File.Exists(): {File.Exists(targetFile)}");
+                Debug.WriteLine("*******************************************************************************");
+                Debug.WriteLine("*******************************************************************************");
 
                 using FileStream fileStream = File.OpenRead(targetFile);
 
@@ -41,6 +67,8 @@ namespace MauiGeoBingo.Helpers
                 return await JsonSerializer.DeserializeAsync<T>(fileStream, options);
             }
         }
+
+        private static bool IsAndroid() => DeviceInfo.Current.Platform == DevicePlatform.Android;
 
         public static async Task<string> WirteToFile(string fileName, string text)
         {
@@ -103,8 +131,9 @@ namespace MauiGeoBingo.Helpers
                     return result.PlayerName;
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Debug.WriteLine(ex);
                 var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
                 await Toast.Make("Något är fel på servern").Show(cts.Token);
             }

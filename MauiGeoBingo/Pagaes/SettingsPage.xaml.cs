@@ -87,6 +87,8 @@ public partial class SettingsPage : ContentPage
         string result = await DownloadFromQuizeDb(updateQuestionDbProg);
         string? filePath = await SaveFile($"quizDb_{DateOnly.FromDateTime(DateTime.Now)}.json", result);
 
+        Debug.WriteLine(filePath);
+
         if (filePath != null)
         {
             AppSettings.QuizJsonFileName = filePath;

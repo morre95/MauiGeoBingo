@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace MauiGeoBingo.Classes
 {
@@ -27,7 +28,20 @@ namespace MauiGeoBingo.Classes
                 Quiz? results = await _GetNewResult(token);
                 if (results != null)
                 {
-                    quiz.Results.AddRange(results.Results);
+                    List<Result> escepedResults = [];
+                    foreach (var result in results.Results)
+                    {
+                        result.Category = HttpUtility.HtmlDecode(result.Category);
+                        result.CorrectAnswer = HttpUtility.HtmlDecode(result.CorrectAnswer);
+                        result.Question = HttpUtility.HtmlDecode(result.Question);
+                        result.IncorrectAnswers = result.IncorrectAnswers.Select(HttpUtility.HtmlDecode).ToList()!;
+
+                        escepedResults.Add(result);
+                    }
+
+                    quiz.Results.AddRange(escepedResults);
+
+                    //quiz.Results.AddRange(results.Results);
                     await progressBar.ProgressTo(quiz.Results.Count / (double)count, 4600, Easing.Linear);
                     quiz.ResponseCode = results.ResponseCode;
                 }

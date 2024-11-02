@@ -57,6 +57,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <None Remove="Resources\quizDb.json" />
 	  <None Remove="Resources\Raw\quizCategories.json" />
 	  <None Remove="Resources\Raw\quizDB.json" />
 	</ItemGroup>
@@ -81,8 +82,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <MauiAsset Update="Resources\Raw\quizDB.json">
-	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  <MauiAsset Update="Resources\Raw\quizDb.json">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  </MauiAsset>
 	</ItemGroup>
 
@@ -120,6 +121,10 @@
 	  <MauiXaml Update="Popups\WinningPopup.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Assets\" />
 	</ItemGroup>
 
 </Project>

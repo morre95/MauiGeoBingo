@@ -280,10 +280,29 @@ public class ButtonViewModel : INotifyPropertyChanged
     {
         Quiz? quiz = null;
         string fileName = AppSettings.QuizJsonFileName;
+        Debug.WriteLine($"****************** Skapa knapparna nu tack, Finns {fileName}: {await FileSystem.Current.AppPackageFileExistsAsync(fileName)} * *************************");
+
+        bool fileExists = await FileSystem.Current.AppPackageFileExistsAsync(fileName);
+        Debug.WriteLine($"File 'data.json' exists in AppPackage: {fileExists}");
+
         if (await FileSystem.Current.AppPackageFileExistsAsync(fileName))
         {
             quiz = await Helper.ReadJsonFile<Quiz>(fileName);
         }
+        else 
+        {
+            quiz = await Helper.GetJson<Quiz>(fileName);
+            if (quiz == null)
+            {
+                Debug.WriteLine($"quiz != null");
+            }
+            Debug.WriteLine("Filen hittas inte");
+        }
+
+
+        
+        //Debug.WriteLine($"quiz != null: {quiz != null}");
+        //Debug.WriteLine($"quiz.Results != null:{quiz.Results != null}");
 
         if (quiz != null && quiz.Results != null)
         {
@@ -296,6 +315,8 @@ public class ButtonViewModel : INotifyPropertyChanged
             {
                 _questions = quiz.Results.Where(r => r.Category.StartsWith(AppSettings.QuizCategorie)).ToList();
             }
+
+            Debug.WriteLine("_questions.Count" + _questions.Count);
 
             for (int row = 0; row < 4; row++)
             {
