@@ -45,6 +45,7 @@ INSERT INTO games (game_name, game_owner, latitude, longitude, is_map, last_modi
 
 UPDATE games SET game_name = "game 4" WHERE game_id = 3;
 UPDATE games SET game_name = "jag har ändrat dig" WHERE game_id = 3;
+/*UPDATE games SET is_active = 0 WHERE game_id = 1;*/
 INSERT INTO games_players (game_id, player_id) VALUES(3, 5);
 
 SELECT * FROM games;
